@@ -1,2 +1,2 @@
 # PDOPlusPlus
-Full object PHP PDO Wrapper
+Full object : PHP PDO Wrapper
