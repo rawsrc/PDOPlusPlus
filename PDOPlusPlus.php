@@ -239,9 +239,9 @@ class PDOPlusPlus
         }
 
         if ($this->isModePrepareValues()) {
-            return $this->modePrepareValues($value, $type, $nullable);
+            return $this->modePrepareValuesEscaping($value, $type, $nullable);
         } elseif ($this->isModeSQLDirect()) {
-            return $this->modeSQLDirect($value, $type, $nullable);
+            return $this->modeSQLDirectEscaping($value, $type, $nullable);
         } else {
             throw new \BadMethodCallException(
                 'For prepared statement using bindParam(), you must use the specific injector returned by the function modePrepareParamsInjector()'
@@ -300,7 +300,7 @@ class PDOPlusPlus
      * @param  bool   $nullable
      * @return string               tag généré
      */
-    private function modePrepareValues($value, string $type, bool $nullable): string
+    private function modePrepareValuesEscaping($value, string $type, bool $nullable): string
     {
         // échappement selon le mécanisme de préparation
         if ($value === null) {
@@ -335,7 +335,7 @@ class PDOPlusPlus
      * @param  bool   $nullable
      * @return mixed
      */
-    private function modeSQLDirect($value, string $type, bool $nullable)
+    private function modeSQLDirectEscaping($value, string $type, bool $nullable)
     {
         // échappement direct des valeurs : conversion de type FORCÉE et échappement texte
         if ($value === null) {
@@ -410,6 +410,7 @@ class PDOPlusPlus
                 }
             }
             $this->stmt->execute();
+            // le format de retour est défini dans le paramétrage de la connexion, voir : PDO::ATTR_DEFAULT_FETCH_MODE
             return $this->stmt->fetchAll();
         } catch (\PDOException $e) {
             if ($this->debug) {
@@ -508,32 +509,8 @@ class PDOPlusPlus
             return null;
         }
     }
-
-    /**
-     * @param  string $sql
-     * @param  bool   $is_query
-     * @return mixed              si $is_query => [] | true
-     */
-    public function storedProc(string $sql, bool $is_query = true)
-    {
-        try {
-            $pdo = self::pdo();
-            if ($this->prepare) {
-                $stmt = $pdo->prepare($sql);
-                foreach ($this->values as $token => $v) {
-                    $stmt->bindValue($token, $v, $this->types[$token]);
-                }
-                $stmt->execute();
-            } else {
-                $stmt = $pdo->query($sql);
-            }
-            return $is_query ? $stmt->fetchAll() : true;
-        } catch (\PDOException $e) {
-            if ($this->debug) {
-                var_dump($sql);
-            }
-            error_log('PDO::select - '.$e->getMessage());
-            return null;
-        }
-    }
 }
+
+// mise à disposition de la classe sur l'espace de nom global :
+class_alias('rawsrc\PDOPlusPlus', 'PDOPlusPlus', false);
+class_alias('rawsrc\PDOPlusPlus', 'PPP', false);
