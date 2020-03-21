@@ -79,12 +79,12 @@ class PDOPlusPlus
     private $stmt;
 
     /**
-     * 3 modes disponibles :
-     * - MODE_SQL_DIRECT     : ignore  le mécanisme de préparation de PDO
-     * - MODE_PREPARE_VALUES : utilise le mécanisme de préparation en mode bindValue()
-     * - MODE_PREPARE_PARAMS : utilise le mécanisme de préparation en mode bindParams()
+     * 3 modes available :
+     * - MODE_SQL_DIRECT     : omits the PDO prepare()
+     * - MODE_PREPARE_VALUES : use PDO::prepare() with bindValue()
+     * - MODE_PREPARE_PARAMS : use PDO::prepare() with bindParams()
      *
-     * @param string $mode      Une des constantes de classe MODE_XXX
+     * @param string $mode
      * @param bool   $debug
      */
     public function __construct(string $mode = self::MODE_SQL_DIRECT, bool $debug = false)
@@ -115,20 +115,20 @@ class PDOPlusPlus
     }
 
     /**
-     * Les paramètres par défaut de PDO sont :
+     * Default parameters for PDO are :
      *      \PDO::ATTR_ERRMODE            => \PDO::ERRMODE_EXCEPTION,
      *      \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
      *      \PDO::ATTR_EMULATE_PREPARES   => false
      *
      * @param string $scheme     Ex: mysql pgsql...
-     * @param string $host       Adresse IP du serveur
-     * @param string $database   Nom de la base de données
-     * @param string $user       Nom de l'utilisateur
-     * @param string $pwd        Mot de passe de la connexion
-     * @param string $port       Numéro du port pour la connexion
-     * @param string $timeout    Délai d'attente réponse serveur
-     * @param array  $pdo_params Paramètres additionnels à passer à la création de PDO     [key => value]
-     * @param array  $dsn_params Paramètres additionnels à passer à la chaîne de connexion [string]
+     * @param string $host       server host
+     * @param string $database   database name
+     * @param string $user       user name
+     * @param string $pwd        password
+     * @param string $port       port number
+     * @param string $timeout
+     * @param array  $pdo_params others parameters for PDO          [key => value]
+     * @param array  $dsn_params other parameter for the dsn string [string]
      */
     private static function connect(string $scheme = DB_SCHEME, string $host = DB_HOST, string $database = DB_NAME,
                                     string $user = DB_USER, string $pwd = DB_PWD, string $port = DB_PORT,
@@ -186,16 +186,13 @@ class PDOPlusPlus
     }
 
     /**
-     * 3 paramètres au maximum autorisés :
-     *    - le 1er paramètre doit TOUJOURS correspondre à la valeur du champ
-     *    - les 2 autres sont libres dans leur présence et/ou placement :
-     *          - un paramètre de type 'boolean' strict est réservé à la propriété nullable du champ
-     *          - un paramètre de type 'string'  strict est réservé au type du champ
+     * 3 parameters allowed :
+     *    - the 1st is always reserved to the value
+     *    - the 2 others are free, even in their placement
+     *          - one boolean strict for the nullable attribute
+     *          - one string for the type among: 'int', 'str', 'float', 'double', 'num', 'numeric', 'bool'
      *
-     * Les types de champs possibles sont :
-     *     'int', 'str', 'float', 'double', 'num', 'numeric', 'bool'
-     *
-     * Par défaut, le champ est nullable et de type texte
+     * By default all fields are strings and nullable
      *
      * @param  mixed  $value
      * @param  string $type
@@ -208,9 +205,9 @@ class PDOPlusPlus
             throw new \BadFunctionCallException('Missing value');
         }
 
-        $value    = $args[0];   // le premier paramètre doit TOUJOURS être la valeur
-        $nullable = true;       // par défaut
-        $type     = 'str';      // par défaut
+        $value    = $args[0];
+        $nullable = true;
+        $type     = 'str';
 
         if (isset($args[1])) {
             if (is_bool($args[1])) {
@@ -285,7 +282,7 @@ class PDOPlusPlus
                 } else {
                     $type = \PDO::PARAM_STR;
                 }
-                // génération du tag, stockage de la valeur, du type et renvoi du tag
+                // generating the tag, save both the value and type and return the tag
                 $tag = PDOPlusPlus::tag();
                 $this->values[$tag] =& $value;
                 $this->types[$tag]  = $type;
@@ -298,11 +295,10 @@ class PDOPlusPlus
      * @param         $value
      * @param  string $type
      * @param  bool   $nullable
-     * @return string               tag généré
+     * @return string            generated tag
      */
     private function modePrepareValuesEscaping($value, string $type, bool $nullable): string
     {
-        // échappement selon le mécanisme de préparation
         if ($value === null) {
             if ($nullable) {
                 $type = \PDO::PARAM_NULL;
@@ -322,7 +318,7 @@ class PDOPlusPlus
             $value = (string)$value;
             $type  = \PDO::PARAM_STR;
         }
-        // génération du tag, stockage de la valeur, du type et renvoi du tag
+        // generating the tag, save both the value and type and return the tag
         $tag = $this->tag();
         $this->values[$tag] = $value;
         $this->types[$tag]  = $type;
@@ -338,6 +334,7 @@ class PDOPlusPlus
     private function modeSQLDirectEscaping($value, string $type, bool $nullable)
     {
         // échappement direct des valeurs : conversion de type FORCÉE et échappement texte
+        // escaping the values manually, forced casting and string escaping
         if ($value === null) {
             if ($nullable) {
                 return 'NULL';
@@ -351,15 +348,14 @@ class PDOPlusPlus
         } elseif (in_array($type, ['float', 'double', 'num', 'numeric'], true)) {
             return (string)(double)$value;
         } else {
-            // ici on demande directement au serveur (via la connexion ouverte) d'échapper la valeur texte selon ses propres règles
             return self::pdo()->quote((string)$value, \PDO::PARAM_STR);
         }
     }
 
 
     /**
-     * Generateur de tag
-     * Chaque tag est unique pour toute la session
+     * Unique tag generator
+     * The tag is always unique for the whole current session
      * @return string
      */
     public static function tag(): string
@@ -372,7 +368,8 @@ class PDOPlusPlus
     }
 
     /**
-     * Générateur de tags uniques
+     * Unique tags generator
+     * The tags are always unique for the whole current session
      * @param  array $keys
      * @return array        [key => tag]
      */
@@ -387,7 +384,7 @@ class PDOPlusPlus
 
     /**
      * @param  mixed $sql
-     * @return array|null       null si erreur
+     * @return array|null       null on error
      */
     public function select($sql): ?array
     {
@@ -410,7 +407,7 @@ class PDOPlusPlus
                 }
             }
             $this->stmt->execute();
-            // le format de retour est défini dans le paramétrage de la connexion, voir : PDO::ATTR_DEFAULT_FETCH_MODE
+            // the return format is defined when opening the connection : see PDO::ATTR_DEFAULT_FETCH_MODE
             return $this->stmt->fetchAll();
         } catch (\PDOException $e) {
             if ($this->debug) {
@@ -423,7 +420,7 @@ class PDOPlusPlus
 
     /**
      * @param  string $sql
-     * @return int|null         si int => nombre de lignes affectées
+     * @return int|null         null on error | int -> nb of affected rows
      */
     public function update(string $sql)
     {
@@ -432,7 +429,7 @@ class PDOPlusPlus
 
     /**
      * @param  string $sql
-     * @return int|null         si int => nombre de lignes affectées
+     * @return int|null         null on error | int -> nb of affected rows
      */
     public function delete(string $sql)
     {
@@ -450,7 +447,7 @@ class PDOPlusPlus
 
     /**
      * @param  string $sql
-     * @return int|null         si int => nombre de lignes affectées
+     * @return int|null         null on error | int -> nb of affected rows
      */
     private function deleteOrUpdate(string $sql)
     {
@@ -487,7 +484,7 @@ class PDOPlusPlus
 
     /**
      * @param  string $sql
-     * @return int|null           lastInsertId() | null si erreur
+     * @return int|null           lastInsertId() | null on error
      */
     public function insert(string $sql)
     {
@@ -521,6 +518,6 @@ class PDOPlusPlus
     }
 }
 
-// mise à disposition de la classe sur l'espace de nom global :
+// make the class available on the global namespace :
 class_alias('rawsrc\PDOPlusPlus', 'PDOPlusPlus', false);
-class_alias('rawsrc\PDOPlusPlus', 'PPP', false);
+class_alias('rawsrc\PDOPlusPlus', 'PPP', false);            // PPP is an official alias of PDOPlusPlus
