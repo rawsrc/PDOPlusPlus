@@ -24,7 +24,7 @@ If you read french, you will find a complete tutorial with tons of explanations 
 **HOW TO USE IT**
 
 As written, `PDOPlusPlus` is as PDO Wrapper, so it will have to connect to your database using PDO of course.
-So the first step is to provide the connexion parameter to the class. It's highly recommended to use constants : 
+So the first step is to provide the connexion parameters to the class. It's highly recommended to use constants : 
 ```php
 define('DB_SCHEME', 'mysql');
 define('DB_HOST', 'localhost');
