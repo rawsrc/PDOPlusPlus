@@ -170,3 +170,8 @@ sql;
 $new_id = $ppp->delete($sql);
 ```
 
+Hope this will help you to produce in a more comfortable way a better SQL code and use PDO natively in your PHP code.
+
+Enjoy ! 
+
+**rawsrc**  
