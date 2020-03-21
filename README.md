@@ -170,6 +170,28 @@ sql;
 $new_id = $ppp->delete($sql);
 ```
 
+**SELECT A RECORD** 
+```php
+include 'PDOPlusPlus.php';
+
+$id   = 1;
+$ppp  = new PPP(PPP::MODE_PREPARE_VALUES);
+$sql  = <<<sql
+SELECT * FROM t_video WHERE video_id = {$ppp($id, 'int')}
+sql;
+$data = $ppp->select($sql);
+```
+
+```php
+include 'PDOPlusPlus.php';
+
+$ppp  = new PPP(PPP::MODE_PREPARE_VALUES);
+$sql  = <<<sql
+SELECT * FROM t_video WHERE video_support LIKE {$ppp('%RAY%', 'int')}
+sql;
+$data = $ppp->select($sql);
+```
+
 Hope this will help you to produce in a more comfortable way a better SQL code and use PDO natively in your PHP code.
 
 Enjoy ! 
