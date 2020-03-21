@@ -77,15 +77,16 @@ $data = [[
 ```
 
 You can work in 3 different modes with `PDOPlusPlus`.
-- `PDOPlusPlus::MODE_SQL_DIRECT` : omits the prepare mechanism and escape directly the values
-- `PDOPlusPlus::MODE_PREPARE_VALUES` : use the prepare mechanism with `bindValue()`
-- `PDOPlusPlus::MODE_PREPARE_PARAMS` : use the prepare mechanism with `bindParam()`
+- `PDOPlusPlus::MODE_SQL_DIRECT` : omits the preparation mechanism and escape directly the values
+    - `PDOPlusPlus::MODE_PREPARE_VALUES` : use the preparation mechanism with `bindValue()`
+- `PDOPlusPlus::MODE_PREPARE_PARAMS` : use the preparation mechanism with `bindParam()`
 
 You must define the mode when you create a new instance of `PDOPlusPlus`.
 
 **ADD A RECORD**
 
 Let's add the first movie into the database using `PDOPlusPlus`:
+
 I will use the SQL DIRECT mode omitting the `PDOStatement` step. 
 ```php
 include 'PDOPlusPlus.php';
@@ -101,6 +102,7 @@ $new_id = $ppp->insert($sql);
 ```
 
 Let's add the second movie into the database using `PDOPlusPlus`:
+
 I will use a `PDOStatement` based on values (`->bindValue()`). 
 ```php
 include 'PDOPlusPlus.php';
@@ -122,8 +124,11 @@ INSERT INTO t_video (video_title, video_support, video_multilingual, video_chapt
 
 Let's truncate the table and then add the whole list of films at once.
 This time, I will use a `PDOStatement` based on references (`->bindParam()`) as there are many iterations to do.
+
 Please note, to pass the references to the `PDOPlusPlus` instance, you **MUST** use the reference injector
-returned by `->modePrepareParamsInjector();`. Otherwise it will not work.
+returned by `->modePrepareParamsInjector();`. 
+
+Otherwise it will not work.
 ```php
 include 'PDOPlusPlus.php';
 // when there's no parameters, use the MODE_SQL_DIRECT
