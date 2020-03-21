@@ -1,0 +1,23 @@
+{
+  "name": "rawsrc/PDOPlusPlus",
+  "description": "A full object PDO Wrapper for PHP with a new revolutionary fluid SQL syntax",
+  "keywords": ["PHP PDO Wrapper PPP SQL fluid syntax"],
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Martin Lacroix",
+      "email": "rawsrc@gmail.com",
+      "homepage": "https://www.developpez.net/forums/blogs/32058-rawsrc/b9083/pdoplusplus-ppp-nouvelle-facon-dutiliser-pdo/",
+      "role": "Creator"
+    }
+  ],
+  "require": {
+    "php": ">=7.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "rawsrc\\PDOPlusPlus\\": "PDOPlusPlus/"
+    }
+  },
+  "minimum-stability": "stable"
+}

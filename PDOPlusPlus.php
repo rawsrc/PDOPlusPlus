@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace rawsrc;
+namespace rawsrc\PDOPlusPlus;
 
 /**
- * PDOPlusPlus : A PHP Full Object PDO Wrapper
+ * PDOPlusPlus : A PHP Full Object PDO Wrapper with a new revolutionary fluid SQL syntax
  *
  * @link        https://www.developpez.net/forums/blogs/32058-rawsrc/b9083/pdoplusplus-nouvelle-facon-dutiliser-pdo/
  * @author      rawsrc - https://www.developpez.net/forums/u32058/rawsrc/
