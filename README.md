@@ -19,7 +19,7 @@ If you read french, you will find a complete tutorial with tons of explanations 
  
  Here's the global scheme for calling the class inside a plain SQL string:
  
- ![PDOPlusPlus Concept](https://github.com/rawsrc/PDOPlusPlus/PDOPlusPlusConcept.png)
+ ![PDOPlusPlus Concept](/PDOPlusPlusConcept.png)
  
 **HOW TO USE IT**
 
