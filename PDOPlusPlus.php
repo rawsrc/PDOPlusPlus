@@ -96,7 +96,7 @@ class PDOPlusPlus
     }
 
     /**
-     * @return bool
+     * @return string
      */
     public function mode(): string
     {
@@ -149,10 +149,10 @@ class PDOPlusPlus
         }
 
         $params = $pdo_params + [
-                \PDO::ATTR_ERRMODE            => \PDO::ERRMODE_EXCEPTION,
-                \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
-                \PDO::ATTR_EMULATE_PREPARES   => false
-            ];
+            \PDO::ATTR_ERRMODE            => \PDO::ERRMODE_EXCEPTION,
+            \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
+            \PDO::ATTR_EMULATE_PREPARES   => false
+        ];
 
         try {
             self::$pdo = new \PDO($dsn, $user, $pwd, $params);
@@ -416,7 +416,7 @@ class PDOPlusPlus
             if ($this->debug) {
                 var_dump($sql);
             }
-            error_log('PDO::select - '.$e->getMessage());
+            error_log('PPP::select - '.$e->getMessage());
             return null;
         }
     }
@@ -437,6 +437,15 @@ class PDOPlusPlus
     public function delete(string $sql)
     {
         return $this->deleteOrUpdate($sql);
+    }
+
+    /**
+     * @param  string $sql
+     * @return bool
+     */
+    public function execute(string $sql): bool
+    {
+        return (bool)$this->deleteOrUpdate($sql);
     }
 
     /**
@@ -471,7 +480,7 @@ class PDOPlusPlus
             if ($this->debug) {
                 var_dump($sql);
             }
-            error_log('PDO::deleteOrUpdate - '.$e->getMessage());
+            error_log('PPP::deleteOrUpdate - '.$e->getMessage());
             return null;
         }
     }
@@ -491,6 +500,7 @@ class PDOPlusPlus
                 foreach ($this->values as $token => $v) {
                     $this->stmt->bindValue($token, $v, $this->types[$token]);
                 }
+                $this->stmt->execute();
             } elseif ($this->isModePrepareParams()) {
                 if ( ! isset($this->stmt)) {
                     $this->stmt = $pdo->prepare($sql);
@@ -505,7 +515,7 @@ class PDOPlusPlus
             if ($this->debug) {
                 var_dump($sql);
             }
-            error_log('PDO::select - '.$e->getMessage());
+            error_log('PPP::insert - '.$e->getMessage());
             return null;
         }
     }
