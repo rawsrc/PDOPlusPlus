@@ -5,9 +5,9 @@
 ## **A PHP full object PDO Wrapper in one class**
 
 `PDOPlusPlus` (alias `PPP`) is a one class PDO Wrapper for PHP with a revolutionary fluid SQL syntax. 
-You do not have anymore to use PDO in a classical way, you can completely omit the notion of 
-`prepare()`, `bindValue()`, `bindParam()`. The use of these mechanisms is now hidden by `PDOPlusPlus`. 
-All you have to do is to write directly a clean SQL query and injecting directly your values.
+You do not have anymore to use PDO in a classical way, you can completely omit the notions of 
+`prepare()`, `bindValue()`, `bindParam()`. The usage of these mechanisms is now hidden by `PDOPlusPlus`. 
+All you have to do is to write directly a clean SQL query and inject directly your values.
 
 The engine, will automatically escape the values and will let you concentrate only on the SQL syntax.
 
