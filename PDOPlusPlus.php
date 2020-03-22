@@ -58,13 +58,18 @@ class PDOPlusPlus
      */
     private static $tags = [];
     /**
-     * @var array
+     * @var array   [:tag => value]
      */
     private $values = [];
     /**
-     * @var array
+     * @var array   [:tag => PDO::PARAM_xxx]
      */
     private $types = [];
+    /**
+     * Used only for IN_OUT Params
+     * @var array  [:tag => length]
+     */
+    private $length = [];
     /**
      * @var string
      */
@@ -247,9 +252,10 @@ class PDOPlusPlus
     }
 
     /**
+     * Reference injector for params having IN attribute
      * @return object
      */
-    public function modePrepareParamsRefInjector(): object
+    public function modePrepareParamsInInjector(): object
     {
         return new class(self::$tags, $this->values, $this->types) {
             private static $tags;
@@ -286,6 +292,57 @@ class PDOPlusPlus
                 $tag = PDOPlusPlus::tag();
                 $this->values[$tag] =& $value;
                 $this->types[$tag]  = $type;
+                return $tag;
+            }
+        };
+    }
+
+    /**
+     * Reference injector for params having IN OUT attribute
+     * @return object
+     */
+    public function modePrepareParamsInOutInjector(): object
+    {
+        return new class(self::$tags, $this->values, $this->types, $this->length) {
+            private static $tags;
+            private $values;
+            private $types;
+            private $length;
+
+            /**
+             * @param $tags
+             * @param $values
+             * @param $types
+             * @param $length
+             */
+            public function __construct(&$tags, &$values, &$types, &$length)
+            {
+                self::$tags   =& $tags;
+                $this->values =& $values;
+                $this->types  =& $types;
+                $this->length =& $length;
+            }
+
+            /**
+             * @param         $value
+             * @param  string $type
+             * @param  int    $length
+             * @return string
+             */
+            public function __invoke(&$value, string $type = 'str', int $length = 255): string
+            {
+                if ($type === 'int') {
+                    $type = \PDO::PARAM_INT;
+                } elseif ($type === 'bool') {
+                    $type = \PDO::PARAM_BOOL;
+                } else {
+                    $type = \PDO::PARAM_STR;
+                }
+                // generating the tag, save the value, type, length and return the tag
+                $tag = PDOPlusPlus::tag();
+                $this->values[$tag] =& $value;
+                $this->types[$tag]  = $type|\PDO::PARAM_INPUT_OUTPUT; // specific PDO type for IN_OUT parameter
+                $this->length[$tag] = $length;
                 return $tag;
             }
         };
@@ -351,7 +408,6 @@ class PDOPlusPlus
             return self::pdo()->quote((string)$value, \PDO::PARAM_STR);
         }
     }
-
 
     /**
      * Unique tag generator
@@ -513,6 +569,49 @@ class PDOPlusPlus
                 var_dump($sql);
             }
             error_log('PPP::insert - '.$e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * @param  string $sql
+     * @param  bool   $is_rowset
+     * @return mixed             null on error
+     */
+    public function call(string $sql, bool $is_rowset)
+    {
+        try {
+            $pdo = self::pdo();
+            if ($this->isModePrepareParams()) {
+                if ( ! isset($this->stmt)) {
+                    $this->stmt = $pdo->prepare($sql);
+                    foreach ($this->values as $token => &$v) {
+                        $this->stmt->bindParam($token, $v, $this->types[$token], $this->length[$token]);
+                    }
+                }
+                $this->stmt->execute();
+                if ($is_rowset) {
+                    $data = [];
+                    do {
+                        $rowset = $this->stmt->fetchAll();
+                        if ($rowset) {
+                            $data[] = $rowset;
+                        } else {
+                            break;
+                        }
+                    } while ($this->stmt->nextRowset());
+                    return $data;
+                } else {
+                    return true;
+                }
+            } else {
+                return null;
+            }
+        } catch (\PDOException $e) {
+            if ($this->debug) {
+                var_dump($sql);
+            }
+            error_log('PPP::call - '.$e->getMessage());
             return null;
         }
     }

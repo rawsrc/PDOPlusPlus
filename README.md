@@ -124,7 +124,7 @@ Let's truncate the table and then add the whole list of films at once.
 This time, I will use a `PDOStatement` based on references (`->bindParam()`) as there are many iterations to do.
 
 Please note, to pass the references to the `PDOPlusPlus` instance, you **MUST** use the reference injector
-returned by `->modePrepareParamsRefInjector();`. Otherwise it will not work.
+returned by `->modePrepareParamsInInjector();`. Otherwise it will not work.
 ```php
 include 'PDOPlusPlus.php';
 // when there's no parameters, use the MODE_SQL_DIRECT
@@ -132,7 +132,7 @@ $ppp = new PPP(PPP::MODE_SQL_DIRECT);
 $ppp->execute('TRUNCATE TABLE t_video');
 
 $ppp = new PPP(PPP::MODE_PREPARE_PARAMS);
-$inj = $ppp->modePrepareParamsRefInjector();   // to pass references you MUST use this reference injector 
+$inj = $ppp->modePrepareParamsInInjector();   // to pass references you MUST use this reference injector 
 $sql = <<<sql
 INSERT INTO t_video (video_title, video_support, video_multilingual, video_chapter, video_year, video_summary)
      VALUES ({$inj($title)}, {$inj($support)}, {$inj($multilingual, 'bool')},
