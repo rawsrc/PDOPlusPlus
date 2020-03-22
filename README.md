@@ -188,7 +188,7 @@ include 'PDOPlusPlus.php';
 
 $ppp  = new PPP(PPP::MODE_PREPARE_VALUES);
 $sql  = <<<sql
-SELECT * FROM t_video WHERE video_support LIKE {$ppp('%RAY%', 'int')}
+SELECT * FROM t_video WHERE video_support LIKE {$ppp('%RAY%')}
 sql;
 $data = $ppp->select($sql);
 ```
