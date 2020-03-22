@@ -291,7 +291,7 @@ class PDOPlusPlus
                 // generating the tag, save both the value and type and return the tag
                 $tag = PDOPlusPlus::tag();
                 $this->values[$tag] =& $value;
-                $this->types[$tag]  = $type;
+                $this->types[$tag]  =  $type;
                 return $tag;
             }
         };
@@ -341,8 +341,8 @@ class PDOPlusPlus
                 // generating the tag, save the value, type, length and return the tag
                 $tag = PDOPlusPlus::tag();
                 $this->values[$tag] =& $value;
-                $this->types[$tag]  = $type|\PDO::PARAM_INPUT_OUTPUT; // specific PDO type for IN_OUT parameter
-                $this->length[$tag] = $length;
+                $this->types[$tag]  =  $type|\PDO::PARAM_INPUT_OUTPUT; // specific PDO type for IN_OUT parameter
+                $this->length[$tag] =  $length;
                 return $tag;
             }
         };
@@ -574,15 +574,28 @@ class PDOPlusPlus
     }
 
     /**
-     * @param  string $sql
-     * @param  bool   $is_rowset
+     * @param string $sql
+     * @param bool   $is_query
+     * @param bool   $many_rowsets
      * @return mixed             null on error
      */
-    public function call(string $sql, bool $is_rowset)
+    public function call(string $sql, bool $is_query, bool $many_rowsets = false)
     {
         try {
             $pdo = self::pdo();
-            if ($this->isModePrepareParams()) {
+            if ($this->isModeSQLDirect()) {
+                if ($is_query || $many_rowsets) {
+                    $this->stmt = $pdo->query($sql);
+                } else {
+                    return $pdo->exec($sql);
+                }
+            } elseif ($this->isModePrepareValues()) {
+                $this->stmt = $pdo->prepare($sql);
+                foreach ($this->values as $token => $v) {
+                    $this->stmt->bindValue($token, $v, $this->types[$token]);
+                }
+                $this->stmt->execute();
+            } elseif ($this->isModePrepareParams()) {
                 if ( ! isset($this->stmt)) {
                     $this->stmt = $pdo->prepare($sql);
                     foreach ($this->values as $token => &$v) {
@@ -590,22 +603,23 @@ class PDOPlusPlus
                     }
                 }
                 $this->stmt->execute();
-                if ($is_rowset) {
-                    $data = [];
-                    do {
-                        $rowset = $this->stmt->fetchAll();
-                        if ($rowset) {
-                            $data[] = $rowset;
-                        } else {
-                            break;
-                        }
-                    } while ($this->stmt->nextRowset());
-                    return $data;
-                } else {
-                    return true;
-                }
+            }
+            if ($many_rowsets) {
+                $data = [];
+                $i    = 0;
+                do {
+                    $row = $this->stmt->fetchAll();
+                    if ($row) {
+                        $data[$i++] = $row;
+                    } else {
+                        break;
+                    }
+                } while ($this->stmt->nextRowset());
+                return $data;
+            } elseif ($is_query) {
+                return $this->stmt->fetchAll();
             } else {
-                return null;
+                return true;
             }
         } catch (\PDOException $e) {
             if ($this->debug) {
@@ -613,6 +627,13 @@ class PDOPlusPlus
             }
             error_log('PPP::call - '.$e->getMessage());
             return null;
+        }
+    }
+
+    public function closeCursor()
+    {
+        if (isset($this->stmt)) {
+            $this->stmt->closeCursor();
         }
     }
 }
