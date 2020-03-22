@@ -249,7 +249,7 @@ class PDOPlusPlus
     /**
      * @return object
      */
-    public function modePrepareParamsInjector(): object
+    public function modePrepareParamsRefInjector(): object
     {
         return new class(self::$tags, $this->values, $this->types) {
             private static $tags;
