@@ -58,9 +58,9 @@ try {
     ];
 
     $pdo = new PDO("mysql:host=HOST;dbname=DB;port=PORT;connect_timeout=TIMEOUT;", "USER", "PWD", [
-       \PDO::ATTR_ERRMODE            => \PDO::ERRMODE_EXCEPTION,
-       \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
-       \PDO::ATTR_EMULATE_PREPARES   => false
+       PDO::ATTR_ERRMODE            => \PDO::ERRMODE_EXCEPTION,
+       PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
+       PDO::ATTR_EMULATE_PREPARES   => false
     ]);
     
     $sql = <<<'sql'
@@ -82,7 +82,7 @@ try {
     if ($film['summary'] === null) {
         $stmt->bindValue(':video_summary', null, PDO::PARAM_NULL);
     } else {
-        $stmt->bindValue(':video_summary');
+        $stmt->bindValue(':video_summary', $film['summary']);
     }   
     $stmt->bindValue(':video_stock', (int)$film['stock'], PDO::PARAM_INT);
     
@@ -174,7 +174,7 @@ $data = [[
     'year'         => 2003,
     'summary'      => null,
     'stock'        => 1
-]];;
+]];
 ```
 ###**3 DIFFERENT MODES**
 When you create a new instance of PPP, you must choose between 3 different modes:
