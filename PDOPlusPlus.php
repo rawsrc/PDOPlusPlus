@@ -73,10 +73,6 @@ class PDOPlusPlus
      */
     protected $types = [];
     /**
-     * @var array   [tag => bool]
-     */
-    protected $nullable = [];
-    /**
      * @var array
      */
     protected $in_params = [];
@@ -193,9 +189,8 @@ class PDOPlusPlus
      */
     public function __construct(string $mode = self::MODE_SQL_DIRECT, bool $debug = false)
     {
-        $this->mode = in_array($mode, [self::MODE_SQL_DIRECT, self::MODE_PREPARE_VALUES, self::MODE_PREPARE_PARAMS], true)
-            ? $mode
-            : self::MODE_SQL_DIRECT;
+        $modes       = [self::MODE_SQL_DIRECT, self::MODE_PREPARE_VALUES, self::MODE_PREPARE_PARAMS];
+        $this->mode  = in_array($mode, $modes, true) ? $mode : self::MODE_SQL_DIRECT;
         $this->debug = $debug;
     }
 
@@ -236,10 +231,10 @@ class PDOPlusPlus
         }
 
         $params = $pdo_params + [
-                PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES   => false
-            ];
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES   => false
+        ];
 
         try {
             self::$pdo = new PDO($dsn, $user, $pwd, $params);
@@ -323,19 +318,8 @@ class PDOPlusPlus
                     throw new BadMethodCallException('Missing value');
                 }
 
-                $value    = $args[0];
-                $nullable = true;
-                $type     = 'str';
-
-                if (isset($args[1])) {
-                    if (is_bool($args[1])) {
-                        $nullable = $args[1];
-                        $type     = $args[2] ?? 'str';
-                    } else {
-                        $type     = $args[1];
-                        $nullable = $args[2] ?? true;
-                    }
-                }
+                $value = $args[0];
+                $type  = $args[1] ?? 'str';
 
                 /**
                  * @param $p
@@ -351,20 +335,18 @@ class PDOPlusPlus
 
                 if ($this->ppp->isModePrepareValues()) {
                     $tag = PDOPlusPlus::tag();
-                    $this->ppp->values[$tag]   = $value;
-                    $this->ppp->types[$tag]    = $type;
-                    $this->ppp->nullable[$tag] = $nullable;
-                    $this->ppp->in_params[]    = $tag;
+                    $this->ppp->values[$tag] = $value;
+                    $this->ppp->types[$tag]  = $type;
+                    $this->ppp->in_params[]  = $tag;
                     return $tag;
                 } elseif ($this->ppp->isModeSQLDirect()) {
-                    return PDOPlusPlus::sqlValue($value, $type, $nullable, false);
+                    return PDOPlusPlus::sqlValue($value, $type, false);
                 } else {
                     throw new BadMethodCallException(
                         'For prepared statement using reference, you must use a specific injector "by reference"'
                     );
                 }
             }
-
         };
     }
 
@@ -382,6 +364,7 @@ class PDOPlusPlus
             /**
              * @param $values
              * @param $types
+             * @param $in_params
              */
             public function __construct(&$values, &$types, &$in_params)
             {
@@ -392,7 +375,7 @@ class PDOPlusPlus
 
             /**
              * @param         $value
-             * @param  string $type
+             * @param  string $type     among: int str float double num numeric bool
              * @return string
              */
             public function __invoke(&$value, string $type = 'str'): string
@@ -401,7 +384,6 @@ class PDOPlusPlus
                 $this->values[$tag] =& $value;
                 $this->types[$tag]  =  $type;
                 $this->in_params[]  =  $tag;
-
                 return $tag;
             }
         };
@@ -442,52 +424,34 @@ class PDOPlusPlus
      */
     protected function injectorInOutByVal(): object
     {
-        return new class($this->values, $this->types, $this->nullable, $this->inout_params) {
+        return new class($this->values, $this->types, $this->inout_params) {
             private $values;
             private $types;
-            private $nullable;
             private $inout_params;
 
             /**
              * @param $values
              * @param $types
-             * @param $nullable
              * @param $inout_params
              */
-            public function __construct(&$values, &$types, &$nullable, &$inout_params)
+            public function __construct(&$values, &$types, &$inout_params)
             {
                 $this->values       =& $values;
                 $this->types        =& $types;
-                $this->nullable     =& $nullable;
                 $this->inout_params =& $inout_params;
             }
 
             /**
              * @param         $value
              * @param string  $inout_param // ex: '@id'
-             * @param mixed   $args         string $type and bool $nullable only for IN parameter
+             * @param string  $type        among: int str float double num numeric bool
              * @return string
              */
-            public function __invoke($value, string $inout_param, ...$args): string
+            public function __invoke($value, string $inout_param, string $type = 'str'): string
             {
-                $nullable = true;
-                $type     = 'str';
-
-                if ( ! empty($args)) {
-                    if (is_bool($args[0])) {
-                        $nullable = $args[0];
-                        $type     = $args[1] ?? 'str';
-                    } else {
-                        $type     = $args[0];
-                        $nullable = $args[1] ?? true;
-                    }
-                }
-
-                $this->inout_params[]         = $inout_param;
-                $this->values[$inout_param]   = $value;
-                $this->types[$inout_param]    = $type;
-                $this->nullable[$inout_param] = $nullable;
-
+                $this->inout_params[]       = $inout_param;
+                $this->values[$inout_param] = $value;
+                $this->types[$inout_param]  = $type;
                 return $inout_param;
             }
         };
@@ -499,52 +463,34 @@ class PDOPlusPlus
      */
     protected function injectorInOutByRef(): object
     {
-        return new class($this->values, $this->types, $this->nullable, $this->inout_params) {
+        return new class($this->values, $this->types, $this->inout_params) {
             private $values;
             private $types;
-            private $nullable;
             private $inout_params;
 
             /**
              * @param $values
              * @param $types
-             * @param $nullable
              * @param $inout_params
              */
-            public function __construct(&$values, &$types, &$nullable, &$inout_params)
+            public function __construct(&$values, &$types, &$inout_params)
             {
                 $this->values       =& $values;
                 $this->types        =& $types;
-                $this->nullable     =& $nullable;
                 $this->inout_params =& $inout_params;
             }
 
             /**
              * @param        $value
-             * @param string $inout_param // ex: '@id'
-             * @param mixed  $args
+             * @param string $inout_param   // ex: '@id'
+             * @param string $type          among: int str float double num numeric bool
              * @return string
              */
-            public function __invoke(&$value, string $inout_param, ...$args): string
+            public function __invoke(&$value, string $inout_param, string $type = 'str'): string
             {
-                $nullable = true;
-                $type     = 'str';
-
-                if ( ! empty($args)) {
-                    if (is_bool($args[0])) {
-                        $nullable = $args[0];
-                        $type     = $args[1] ?? 'str';
-                    } else {
-                        $type     = $args[0];
-                        $nullable = $args[1] ?? true;
-                    }
-                }
-
-                $this->inout_params[]         =  $inout_param;
-                $this->values[$inout_param]   =& $value;            // by ref
-                $this->types[$inout_param]    =  $type;
-                $this->nullable[$inout_param] =  $nullable;
-
+                $this->inout_params[]       =  $inout_param;
+                $this->values[$inout_param] =& $value;            // by ref
+                $this->types[$inout_param]  =  $type;
                 return $inout_param;
             }
         };
@@ -654,21 +600,15 @@ class PDOPlusPlus
                     $sql = [];
                     foreach ($this->inout_params as $io) {
                         // Injecting one by one io_params's value using SQL syntax : "SET @io_param = value"
-                        $sql[] = "SET {$io} = ".self::sqlValue(
-                            $this->values[$io], $this->types[$io], $this->nullable[$io], false
-                        );
+                        $sql[] = "SET {$io} = ".self::sqlValue($this->values[$io], $this->types[$io], false);
                     }
                     $sql = implode(';', $sql);
                     $pdo->exec($sql);
                 }
             };
 
-            if ($this->isModePrepareValues()) {
+            if ( ! $this->isModeSQLDirect()) {
                 $this->prepareAndAttachValuesOrParams($sql);
-            } elseif ($this->isModePrepareParams()) {
-                if ( ! isset($this->stmt)) {
-                    $this->prepareAndAttachValuesOrParams($sql);
-                }
             }
 
             $inject_io_values();
@@ -705,12 +645,8 @@ class PDOPlusPlus
             // adding the OUT params values
             if ($this->hasOutParams()) {
                 $data['out'] = $this->extractOutParams();
-                return $data;
-            } elseif ($nb_rows === 1) {
-                return $data[0];
-            } else {
-                return $data;
             }
+            return $data;
         } catch (PDOException $e) {
             if ($this->debug) {
                 var_dump($sql);
@@ -747,16 +683,22 @@ class PDOPlusPlus
      */
     private function prepareAndAttachValuesOrParams(string $sql)
     {
-        $pdo_type = function(string $p) {
+        /**
+         * @param  string $p    among: int str float double num numeric bool
+         * @return int
+         */
+        $pdo_type = function(string $p): int {
             return [
                 'null' => PDO::PARAM_NULL,
                 'int'  => PDO::PARAM_INT,
                 'bool' => PDO::PARAM_BOOL,
             ][$p] ?? PDO::PARAM_STR;
         };
+
         if ( ! ($this->stmt instanceof PDOStatement)) {
             $this->stmt = self::pdo()->prepare($sql);
         }
+
         if ($this->isModePrepareValues()) {
             if ($this->hasInParams()) {
                 foreach ($this->values as $token => $v) {
@@ -771,7 +713,7 @@ class PDOPlusPlus
         }
     }
 
-    public function closeCursor()
+    public function closeCursor(): void
     {
         if (isset($this->stmt)) {
             $this->stmt->closeCursor();
@@ -810,21 +752,14 @@ class PDOPlusPlus
     /**
      * @param        $value
      * @param string $type      among: int str float double num numeric bool
-     * @param bool   $nullable
      * @param bool   $for_pdo
      * @return mixed|array       if $for_pdo => [0 => value, 1 => pdo type] | plain escaped value
      */
-    public static function sqlValue($value, string $type, bool $nullable, bool $for_pdo)
+    public static function sqlValue($value, string $type, bool $for_pdo)
     {
         if ($value === null) {
-            if ($nullable) {
-                return $for_pdo ? [null, PDO::PARAM_NULL] : 'NULL';
-            } else {
-                throw new TypeError('The value is not nullable');
-            }
-        }
-
-        if ($type === 'int') {
+            return $for_pdo ? [null, PDO::PARAM_NULL] : 'NULL';
+        } elseif ($type === 'int') {
             $v = (int)$value;
             return $for_pdo ? [$v, PDO::PARAM_INT] : $v;
         } elseif ($type === 'bool') {
