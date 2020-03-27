@@ -194,7 +194,8 @@ $film = $data[0];
 $sql  = <<<sql
 INSERT INTO t_video (video_title, video_support, video_multilingual, video_chapter, video_year, video_summary, video_stock)
      VALUES ({$ppp($film['title'])}, {$ppp($film['support'])}, {$ppp($film['multilingual'], 'bool')},
-             {$ppp($film['chapter'], 'int')}, {$ppp($film['year'], 'int')}, {$ppp($film['summary'])}, {$ppp($film['stock'], 'int')})
+             {$ppp($film['chapter'], 'int')}, {$ppp($film['year'], 'int')}, {$ppp($film['summary'])}, 
+             {$ppp($film['stock'], 'int')})
 sql;
 $new_id = $ppp->insert($sql);   // $new_id = 1 (lastInsertId())
 ```
@@ -334,7 +335,9 @@ Let's create a SP with one IN Param:
 // WITH ONE IN PARAM
 $ppp  = new PPP(PPP::MODE_SQL_DIRECT);
 $exec = $ppp->execute(<<<'sql'
-CREATE OR REPLACE DEFINER = root@localhost PROCEDURE db_pdo_plus_plus.sp_list_films_one_in_param(p_support VARCHAR(30))
+CREATE OR REPLACE DEFINER = root@localhost PROCEDURE db_pdo_plus_plus.sp_list_films_one_in_param(
+    p_support VARCHAR(30)
+)
 BEGIN
     SELECT * FROM t_video WHERE video_support = p_support;
 END;
@@ -367,7 +370,9 @@ Let's create a SP with an `OUT` Param:
 // WITH ONE OUT PARAM
 $ppp  = new PPP(PPP::MODE_SQL_DIRECT);
 $exec = $ppp->execute(<<<'sql'
-CREATE OR REPLACE DEFINER = root@localhost PROCEDURE db_pdo_plus_plus.sp_nb_films_one_out_param(OUT p_nb INT)
+CREATE OR REPLACE DEFINER = root@localhost PROCEDURE db_pdo_plus_plus.sp_nb_films_one_out_param(
+    OUT p_nb INT
+)
 BEGIN
     SELECT COUNT(video_id) INTO p_nb FROM t_video;
 END;
