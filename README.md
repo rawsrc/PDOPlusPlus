@@ -1,27 +1,46 @@
 # **PDOPlusPlus : a new generation of PDO Wrapper**
 
-`2020-03-21` `PHP 7+`
+`2020-03-27` `PHP 7+`
 
 ## **A PHP full object PDO Wrapper in one class**
 
-`PDOPlusPlus` (alias `PPP`) is a one class PDO Wrapper for PHP with a revolutionary fluid SQL syntax. 
+`PDOPlusPlus` (alias `PPP`) is **a one class PDO Wrapper for PHP** with a
+ revolutionary fluid SQL syntax. 
 You do not have anymore to use PDO in a classical way, you can completely omit the notions of 
 `prepare()`, `bindValue()`, `bindParam()`. The usage of these mechanisms is now hidden by `PDOPlusPlus`. 
 All you have to do is to write directly a clean SQL query and inject directly your values.
 
 The engine, will automatically escape the values and will let you concentrate only on the SQL syntax.
 
+`PDOPlusPlus` is compliant with:
+- INSERT
+- UPDATE
+- DELETE
+- SELECT
+- STORED PROCEDURE
+
+For stored procedures, you'll be able to use any `IN`, `OUT` or `INOUT` params.<br>
+`PDOPlusPlus` is also fully compatible with those returning multiple dataset
+ at once.
+
 If you read french, you will find a complete tutorial with tons of explanations on my blog : [rawsrc](https://www.developpez.net/forums/blogs/32058-rawsrc/b9083/pdoplusplus-ppp-nouvelle-facon-dutiliser-pdo/)
      
- **THE CONCEPT**
+###**THE CONCEPT**
  
- The power of `PDOPlusPlus` is directly linked to the way the instance is called as a function using the PHP magic function `__invoke()`
- 
- Here's the global scheme for calling the class inside a plain SQL string:
+The power of `PDOPlusPlus` is directly linked to the way the instance is
+ called as a function using the PHP magic function `__invoke()`<br>
+All you have to choose is the right injector to write the SQL and at
+ the same time pass the different values to the query.<br>
+Here's the global scheme for the standard injector:
  
  ![PDOPlusPlus Concept](/PDOPlusPlusConcept.png)
- 
-**HOW TO USE IT**
+
+There's two other specific injectors for stored procedure having `OUT` or
+ `INOUT` params.
+ ![PDOPlusPlus Out](/PDOPlusPlusOut.png)
+ ![PDOPlusPlus InOut](/PDOPlusPlusInOut.png)
+  
+###**HOW TO USE IT**
 
 As written, `PDOPlusPlus` is as PDO Wrapper, so it will have to connect to your database using PDO of course.
 So the first step is to provide the connexion parameters to the class. It's highly recommended to use constants : 
@@ -33,6 +52,8 @@ define('DB_USER', '');       // please fill here
 define('DB_PWD', '');        // please fill here
 define('DB_PORT', '3306');
 define('DB_TIMEOUT', '5');
+define('DB_PDO_PARAMS', []);
+define('DB_DSN_PARAMS', []);
 ```
 You can also add some personal parameters to the connexion, see `private static function connect()`.
 
@@ -46,11 +67,12 @@ create or replace table db_pdo_plus_plus.t_video
 	video_multilingual tinyint(1) default 0 not null,
 	video_chapter int null,
 	video_year int not null,
-	video_summary text null
+	video_summary text null,
+	video_stock int not null
 );   
 ``` 
 
-**SAMPLE DATASET**
+###**SAMPLE DATASET**
 ```php
 $data = [[
     'title'        => "The Lord of the Rings - The Fellowship of the Ring",
@@ -58,24 +80,27 @@ $data = [[
     'multilingual' => true,
     'chapter'      => 1,
     'year'         => 2001,
-    'summary'      => null
+    'summary'      => null,
+    'stock'        => 10
 ], [
-    'title'        => "The Lord of the Rings - The Two Towers",
+    'title'        => "The Lord of the Rings - The two towers",
     'support'      => 'BLU-RAY',
     'multilingual' => true,
     'chapter'      => 2,
     'year'         => 2002,
-    'summary'      => null
+    'summary'      => null,
+    'stock'        => 0
 ], [
-    'title'        => "The Lord of the Rings - The Return of the King",
+    'title'        => "The Lord of the Rings - The return of the King",
     'support'      => 'DVD',
     'multilingual' => true,
     'chapter'      => 3,
     'year'         => 2003,
-    'summary'      => null
-]];
+    'summary'      => null,
+    'stock'        => 1
+]];;
 ```
-
+###**3 DIFFERENT MODES**
 You can work in 3 different modes with `PDOPlusPlus`.
 - `PDOPlusPlus::MODE_SQL_DIRECT` : omits the preparation mechanism and escape directly the values
 - `PDOPlusPlus::MODE_PREPARE_VALUES` : use the preparation mechanism with `bindValue()`
@@ -83,8 +108,7 @@ You can work in 3 different modes with `PDOPlusPlus`.
 
 You must define the mode when you create a new instance of `PDOPlusPlus`.
 
-**ADD A RECORD**
-
+###**ADD A RECORD**
 Let's add the first movie into the database using `PDOPlusPlus`:
 I will use the SQL DIRECT mode omitting the `PDOStatement` step. 
 ```php
@@ -93,38 +117,36 @@ include 'PDOPlusPlus.php';
 $ppp  = new PDOPlusPlus(PDOPlusPlus::MODE_SQL_DIRECT); // or shortly : new PPP(PPP::MODE_SQL_DIRECT); 
 $film = $data[0];
 $sql  = <<<sql
-INSERT INTO t_video (video_title, video_support, video_multilingual, video_chapter, video_year, video_summary)
+INSERT INTO t_video (video_title, video_support, video_multilingual, video_chapter, video_year, video_summary, video_stock)
      VALUES ({$ppp($film['title'], false)}, {$ppp($film['support'])}, {$ppp($film['multilingual'], 'bool', false)},
-             {$ppp($film['chapter'], 'int')}, {$ppp($film['year'], 'int', false)}, {$ppp($film['summary'])})
+             {$ppp($film['chapter'], 'int')}, {$ppp($film['year'], 'int', false)}, {$ppp($film['summary'])}, {$ppp($film['stock'])})
 sql;
-$new_id = $ppp->insert($sql);
+$new_id = $ppp->insert($sql);   // $new_id = 1 (lastInsertId())
 ```
-
-Let's add the second movie into the database using `PDOPlusPlus`:
-I will use a `PDOStatement` based on values (`->bindValue()`). 
+Let's add the second movie into the database using `PDOPlusPlus`: I will use a `PDOStatement` based on values (`->bindValue()`). 
 ```php
 include 'PDOPlusPlus.php';
 
 $ppp  = new PDOPlusPlus(PDOPlusPlus::MODE_PREPARE_VALUES); // or shortly : new PPP(PPP::MODE_PREPARE_VALUES);
 $film = $data[1];
 $sql  = <<<sql
-INSERT INTO t_video (video_title, video_support, video_multilingual, video_chapter, video_year, video_summary)
+INSERT INTO t_video (video_title, video_support, video_multilingual
+, video_chapter, video_year, video_summary, video_stock)
      VALUES ({$ppp($film['title'], false)}, {$ppp($film['support'])}, {$ppp($film['multilingual'], 'bool', false)},
-             {$ppp($film['chapter'], 'int')}, {$ppp($film['year'], 'int', false)}, {$ppp($film['summary'])})
+             {$ppp($film['chapter'], 'int')}, {$ppp($film['year'], 'int', false)}, {$ppp($film['summary'])}, {$ppp($film['stock'])})
 sql;
-$new_id = $ppp->insert($sql);
+$new_id = $ppp->insert($sql);   // $new_id = 2 (lastInsertId())
 ```
 Look at he the SQL generated internally by `PDOPlusPlus` : 
 ```sql
-INSERT INTO t_video (video_title, video_support, video_multilingual, video_chapter, video_year, video_summary) 
-     VALUES (:XMEDem6153, :oASqvP7440, :mbfaTY4236, :FJzRWx7446, :FVHvqL4843, :tcCvZo8956);
+INSERT INTO t_video (video_title, video_support, video_multilingual, video_chapter, video_year, video_summary, video_stock) 
+     VALUES (:XMEDem6153, :oASqvP7440, :mbfaTY4236, :FJzRWx7446, :FVHvqL4843, :tcCvZo8956, :JRtazM4176);
 ```
-
 Let's truncate the table and then add the whole list of films at once.
 This time, I will use a `PDOStatement` based on references (`->bindParam()`) as there are many iterations to do.
 
-Please note, to pass the references to the `PDOPlusPlus` instance, you **MUST** use the reference injector
-returned by `->modePrepareParamsInInjector();`. Otherwise it will not work.
+Please note, to pass the references to the `PDOPlusPlus` instance, you **MUST** use a specific reference injector
+returned by `->injector();`. Otherwise it will not work.
 ```php
 include 'PDOPlusPlus.php';
 // when there's no parameters, use the MODE_SQL_DIRECT
@@ -132,46 +154,42 @@ $ppp = new PPP(PPP::MODE_SQL_DIRECT);
 $ppp->execute('TRUNCATE TABLE t_video');
 
 $ppp = new PPP(PPP::MODE_PREPARE_PARAMS);
-$inj = $ppp->modePrepareParamsInInjector();   // to pass references you MUST use this reference injector 
+$in  = $ppp->modePrepareParamsInInjector();   // to pass references you **MUST** use this reference injector 
 $sql = <<<sql
-INSERT INTO t_video (video_title, video_support, video_multilingual, video_chapter, video_year, video_summary)
-     VALUES ({$inj($title)}, {$inj($support)}, {$inj($multilingual, 'bool')},
-             {$inj($chapter, 'int')}, {$inj($year, 'int')}, {$inj($summary)})
+INSERT INTO t_video (video_title, video_support, video_multilingual, video_chapter, video_year, video_summary, video_stock)
+     VALUES ({$in($title)}, {$in($support)}, {$in($multilingual, 'bool')}, {$in($chapter, 'int')}, {$in($year, 'int')}, 
+             {$in($summary)}, {$in($stock)})
 sql;
 foreach ($data as $film) {
     extract($film); // destructuring the array into components used to populate the references declared just above
     $ppp->insert($sql); 
 }
 ``` 
-
-**UPDATE A RECORD**
-
+###**UPDATE A RECORD**
 Very simple : 
 ```php
 include 'PDOPlusPlus.php';
 $support = 'DVD';
 $id      = 1;
 
-$ppp  = new PPP(PPP::MODE_PREPARE_VALUES);
-$sql  = <<<sql
+$ppp = new PPP(PPP::MODE_PREPARE_VALUES);
+$sql = <<<sql
 UPDATE t_video SET video_support = {$ppp($support)} WHERE video_id = {$ppp($id, 'int')}
 sql;
-$new_id = $ppp->update($sql);
+$nb  = $ppp->update($sql);  // nb of affected rows
 ```
-
-**DELETE A RECORD** 
+###**DELETE A RECORD** 
 ```php
 include 'PDOPlusPlus.php';
 $id = 1;
 
-$ppp  = new PPP(PPP::MODE_PREPARE_VALUES);
-$sql  = <<<sql
+$ppp = new PPP(PPP::MODE_PREPARE_VALUES);
+$sql = <<<sql
 DELETE FROM t_video WHERE video_id = {$ppp($id, 'int')}
 sql;
-$new_id = $ppp->delete($sql);
+$nb  = $ppp->delete($sql); // nb of affected rows
 ```
-
-**SELECT A RECORD** 
+###**SELECT A RECORD** 
 ```php
 include 'PDOPlusPlus.php';
 
@@ -182,7 +200,6 @@ SELECT * FROM t_video WHERE video_id = {$ppp($id, 'int')}
 sql;
 $data = $ppp->select($sql);
 ```
-
 ```php
 include 'PDOPlusPlus.php';
 
@@ -192,6 +209,8 @@ SELECT * FROM t_video WHERE video_support LIKE {$ppp('%RAY%')}
 sql;
 $data = $ppp->select($sql);
 ```
+##**STORED PROCEDURE**
+
 
 Hope this will help you to produce in a more comfortable way a better SQL code and use PDO natively in your PHP code.
 
