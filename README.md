@@ -25,7 +25,7 @@ For stored procedures, you'll be able to use any `IN`, `OUT` or `INOUT` params.<
 
 If you read french, you will find a complete tutorial with tons of explanations on my blog : [rawsrc](https://www.developpez.net/forums/blogs/32058-rawsrc/b9083/pdoplusplus-ppp-nouvelle-facon-dutiliser-pdo/)
      
-###**THE CONCEPT**
+### **THE CONCEPT**
  
 The power of `PDOPlusPlus` is directly linked to the way the instance is
  called as a function using the PHP magic function `__invoke()`<br>
@@ -42,7 +42,7 @@ There's two other specific injectors for stored procedure having `OUT` or
 
 On error, any function will just log internally the system error using `error_log()` and return `null`.
  
-###**WHY PDOPlusPlus ?**
+### **WHY PDOPlusPlus ?**
 
 Just because, this:
 ```php
@@ -116,7 +116,7 @@ sql;
 $id = $ppp->insert($sql);
 ```
 
-###**HOW TO USE IT**
+### **HOW TO USE IT**
 
 As written, `PDOPlusPlus` is as PDO Wrapper, so it will have to connect to your database using PDO of course.
 So the first step is to provide the connexion parameters to the class. It's highly recommended to use constants : 
@@ -148,7 +148,7 @@ create or replace table db_pdo_plus_plus.t_video
 );   
 ``` 
 
-###**SAMPLE DATASET**
+### **SAMPLE DATASET**
 ```php
 $data = [[
     'title'        => "The Lord of the Rings - The Fellowship of the Ring",
@@ -176,13 +176,13 @@ $data = [[
     'stock'        => 1
 ]];
 ```
-###**3 DIFFERENT MODES**
+### **3 DIFFERENT MODES**
 When you create a new instance of PPP, you must choose between 3 different modes:
 - `PDOPlusPlus::MODE_SQL_DIRECT`: omits the preparation mechanism and escape directly the values
 - `PDOPlusPlus::MODE_PREPARE_VALUES`: use the preparation mechanism with `bindValue()`
 - `PDOPlusPlus::MODE_PREPARE_PARAMS`: use the preparation mechanism with `bindParam()`
 
-###**ADD A RECORD**
+### **ADD A RECORD**
 Let's add the first movie into the database using `PDOPlusPlus`:<br>
 I will use the SQL DIRECT mode omitting the `PDOStatement` step. 
 ```php
@@ -244,7 +244,7 @@ foreach ($data as $film) {
     $ppp->insert($sql); 
 }
 ``` 
-###**UPDATE A RECORD**
+### **UPDATE A RECORD**
 Very simple : 
 ```php
 include 'PDOPlusPlus.php';
@@ -255,7 +255,7 @@ $ppp = new PPP(PPP::MODE_PREPARE_VALUES);
 $sql = "UPDATE t_video SET video_support = {$ppp($support)} WHERE video_id = {$ppp($id, 'int')}";
 $nb  = $ppp->update($sql);  // nb of affected rows
 ```
-###**DELETE A RECORD** 
+### **DELETE A RECORD** 
 ```php
 include 'PDOPlusPlus.php';
 $id = 1;
@@ -264,7 +264,7 @@ $ppp = new PPP(PPP::MODE_PREPARE_VALUES);
 $sql = "DELETE FROM t_video WHERE video_id = {$ppp($id, 'int')}";
 $nb  = $ppp->delete($sql); // nb of affected rows
 ```
-###**SELECT A RECORD** 
+### **SELECT A RECORD** 
 ```php
 include 'PDOPlusPlus.php';
 
@@ -280,12 +280,12 @@ $ppp  = new PPP(PPP::MODE_PREPARE_VALUES);
 $sql  = "SELECT * FROM t_video WHERE video_support LIKE {$ppp('%RAY%')}";
 $data = $ppp->select($sql);
 ```
-###**STORED PROCEDURE**
+### **STORED PROCEDURE**
 
 Because of having the possibility to extract many dataset at once or/and also passing multiple parameters 
 `IN`, `OUT` or `INOUT`, most of the time you will have to use a specific value injector as shown below.
 
-####**ONE DATASET**
+#### **ONE DATASET**
 Let's create a SP that just return a simple dataset:
 ```php
 // ONE ROWSET
@@ -305,7 +305,7 @@ $rows = $ppp->call('CALL sp_list_films()', true);   // the true tells PPP that S
 // $rows is an multidimensional array: 
 // $row[0] => for the first dataset which is an array of all films  
 ```
-####**TWO DATASET AT ONCE**
+#### **TWO DATASET AT ONCE**
 Let's create a SP that just return a double dataset at once:
 ```php
 // TWO ROWSET
@@ -327,7 +327,7 @@ $rows = $ppp->call('CALL sp_list_films_group_by_support()', true); // the true t
 // $row[0] => for the first dataset which is an array of films (BLU-RAY) 
 // $row[1] => for the second dataset which is an array of films (DVD)
 ```
-####**ONE IN PARAM**
+#### **ONE IN PARAM**
 Let's create a SP with one IN Param:
 ```php
 // WITH ONE IN PARAM
@@ -360,7 +360,7 @@ $rows = $ppp->call("CALL sp_list_films_one_in_param({$in($sup)})", true);
 ```
 Chain directly the variables within the SQL as many as IN params you have to pass to the stored procedure.
 
-####**ONE OUT PARAM**
+#### **ONE OUT PARAM**
 Let's create a SP with an `OUT` Param:
 ```php
 // WITH ONE OUT PARAM
@@ -382,7 +382,7 @@ $nb   = $exec['out']['@nb'];
 ```
 **Please note that all `OUT` values are always stored in the result array with the key `out`** 
 
-####**ONE DATASET AND TWO OUT PARAMS**
+#### **ONE DATASET AND TWO OUT PARAMS**
 It is also possible to mix, dataset and `OUT` param:
 ```php
 // WITH ROWSET AND TWO OUT PARAM
@@ -407,7 +407,7 @@ $rows  = $exec[0];  // $exec[0] => for the first dataset which is an array of al
 $nb_br = $exec['out']['@nb_blu_ray']; // note the key 'out'
 $nb_dv = $exec['out']['@nb_dvd'];
 ```
-####**ONE INOUT PARAM WITH TWO OUT PARAMS**
+#### **ONE INOUT PARAM WITH TWO OUT PARAMS**
 Finally, let's create a SP that use a mix between `INOUT` and `OUT` params:
 ```php
 // WITH ONE INOUT PARAM AND TWO OUT PARAM
@@ -439,7 +439,7 @@ $stock = $exec['out']['@stock'];
 $nb_br = $exec['out']['@nb_blu_ray'];
 $nb_dv = $exec['out']['@nb_dvd'];
 ```
-###**CONCLUSION**
+### **CONCLUSION**
 Hope this will help you to produce in a more comfortable way a better SQL code and use PDO natively in your PHP code.
 This code is fully tested. To be compliant with the standards, i have to rewrite all the tests for PHPUNit.
 I'll do so in the next few days.
