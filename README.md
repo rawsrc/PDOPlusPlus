@@ -36,7 +36,7 @@ Here's the global scheme for the standard injector:
  ![PDOPlusPlus Concept](/PDOPlusPlusConcept.png)
 
 There's two other specific injectors for stored procedure having `OUT` or
- `INOUT` params.
+ `INOUT` params.<br>
  ![PDOPlusPlus Out](/PDOPlusPlusOut.png)
  ![PDOPlusPlus InOut](/PDOPlusPlusInOut.png)
 
