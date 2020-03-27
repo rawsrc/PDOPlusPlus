@@ -101,7 +101,7 @@ class PDOPlusPlus
     /**
      * @var bool
      */
-    protected $binded_params = false;
+    protected $params_already_binded = false;
 
     /**
      * @return bool
@@ -449,9 +449,9 @@ class PDOPlusPlus
              */
             public function __invoke($value, string $inout_param, string $type = 'str'): string
             {
-                $this->inout_params[]       = $inout_param;
                 $this->values[$inout_param] = $value;
                 $this->types[$inout_param]  = $type;
+                $this->inout_params[]       = $inout_param;
                 return $inout_param;
             }
         };
@@ -488,9 +488,9 @@ class PDOPlusPlus
              */
             public function __invoke(&$value, string $inout_param, string $type = 'str'): string
             {
-                $this->inout_params[]       =  $inout_param;
                 $this->values[$inout_param] =& $value;            // by ref
                 $this->types[$inout_param]  =  $type;
+                $this->inout_params[]       =  $inout_param;
                 return $inout_param;
             }
         };
@@ -705,11 +705,11 @@ class PDOPlusPlus
                     $this->stmt->bindValue($token, $v, $pdo_type($this->types[$token]));
                 }
             }
-        } elseif ($this->isModePrepareParams() && $this->hasInParams() && ( ! $this->binded_params)) {
+        } elseif ($this->isModePrepareParams() && $this->hasInParams() && ( ! $this->params_already_binded)) {
             foreach ($this->values as $token => &$v) {
                 $this->stmt->bindParam($token, $v, $pdo_type($this->types[$token]));
             }
-            $this->binded_params = true;
+            $this->params_already_binded = true;
         }
     }
 
