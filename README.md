@@ -37,7 +37,7 @@ Here's the global scheme for the standard injector:
 
 There's two other specific injectors for stored procedure having `OUT` or
  `INOUT` params.<br><br>
- ![PDOPlusPlus Out](/PDOPlusPlusOut.png)
+ ![PDOPlusPlus Out](/PDOPlusPlusOut.png)<br><br>
  ![PDOPlusPlus InOut](/PDOPlusPlusInOut.png)
 
 On error, any function will just log internally the system error using `error_log()` and return `null`.
