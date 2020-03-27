@@ -280,11 +280,12 @@ $ppp  = new PPP(PPP::MODE_PREPARE_VALUES);
 $sql  = "SELECT * FROM t_video WHERE video_support LIKE {$ppp('%RAY%')}";
 $data = $ppp->select($sql);
 ```
-##**STORED PROCEDURE**
+###**STORED PROCEDURE**
 
 Because of having the possibility to extract many dataset at once or/and also passing multiple parameters 
 `IN`, `OUT` or `INOUT`, most of the time you will have to use a specific value injector as shown below.
 
+####**ONE DATASET**
 Let's create a SP that just return a simple dataset:
 ```php
 // ONE ROWSET
@@ -304,6 +305,7 @@ $rows = $ppp->call('CALL sp_list_films()', true);   // the true tells PPP that S
 // $rows is an multidimensional array: 
 // $row[0] => for the first dataset which is an array of all films  
 ```
+####**TWO DATASET AT ONCE**
 Let's create a SP that just return a double dataset at once:
 ```php
 // TWO ROWSET
@@ -325,6 +327,7 @@ $rows = $ppp->call('CALL sp_list_films_group_by_support()', true); // the true t
 // $row[0] => for the first dataset which is an array of films (BLU-RAY) 
 // $row[1] => for the second dataset which is an array of films (DVD)
 ```
+####**ONE IN PARAM**
 Let's create a SP with one IN Param:
 ```php
 // WITH ONE IN PARAM
@@ -357,6 +360,7 @@ $rows = $ppp->call("CALL sp_list_films_one_in_param({$in($sup)})", true);
 ```
 Chain directly the variables within the SQL as many as IN params you have to pass to the stored procedure.
 
+####**ONE OUT PARAM**
 Let's create a SP with an `OUT` Param:
 ```php
 // WITH ONE OUT PARAM
@@ -378,6 +382,7 @@ $nb   = $exec['out']['@nb'];
 ```
 **Please note that all `OUT` values are always stored in the result array with the key `out`** 
 
+####**ONE DATASET AND TWO OUT PARAMS**
 It is also possible to mix, dataset and `OUT` param:
 ```php
 // WITH ROWSET AND TWO OUT PARAM
@@ -402,7 +407,7 @@ $rows  = $exec[0];  // $exec[0] => for the first dataset which is an array of al
 $nb_br = $exec['out']['@nb_blu_ray']; // note the key 'out'
 $nb_dv = $exec['out']['@nb_dvd'];
 ```
-
+####**ONE INOUT PARAM WITH TWO OUT PARAMS**
 Finally, let's create a SP that use a mix between `INOUT` and `OUT` params:
 ```php
 // WITH ONE INOUT PARAM AND TWO OUT PARAM
@@ -423,7 +428,7 @@ END;
 sql
 );
 ```
-And call it using the specific injectors: one for `INOUT` and another one for `OUT` params
+And call it using the specific injectors: one for `INOUT` and another one for `OUT` params.<br>
 Please be careful with the syntax for the `INOUT` injector.
 ```php
 $ppp   = new PPP(PPP::MODE_SQL_DIRECT);
@@ -434,7 +439,7 @@ $stock = $exec['out']['@stock'];
 $nb_br = $exec['out']['@nb_blu_ray'];
 $nb_dv = $exec['out']['@nb_dvd'];
 ```
-
+###**CONCLUSION**
 Hope this will help you to produce in a more comfortable way a better SQL code and use PDO natively in your PHP code.
 This code is fully tested. To be compliant with the standards, i have to rewrite all the tests for PHPUNit.
 I'll do so in the next few days.
