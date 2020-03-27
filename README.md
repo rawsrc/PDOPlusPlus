@@ -110,7 +110,8 @@ INSERT INTO t_video (
     video_title, video_support, video_multilingual, video_chapter, video_year, video_summary, video_stock
 ) VALUES (
    {$ppp($film['title'])}, {$ppp($film['support'])}, {$ppp($film['multilingual'], 'bool')}, 
-   {$ppp($film['chapter'], 'int')}, {$ppp($film['year'], 'int')}, {$ppp($film['summary'])}, {$ppp($film['stock'], 'int')}
+   {$ppp($film['chapter'], 'int')}, {$ppp($film['year'], 'int')}, {$ppp($film['summary'])}, 
+   {$ppp($film['stock'], 'int')}
 );
 sql;
 $id = $ppp->insert($sql);
