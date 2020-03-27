@@ -447,7 +447,7 @@ $nb_dv = $exec['out']['@nb_dvd'];
 ```
 ### **CONCLUSION**
 Hope this will help you to produce in a more comfortable way a better SQL code and use PDO natively in your PHP code.
-This code is fully tested. To be compliant with the standards, i have to rewrite all the tests for PHPUNit.
+This code is fully tested. To be compliant with the standards, i have to rewrite all the tests for PHPUnit.
 I'll do so in the next few days.
 
 Ok guys, that's all folks.
