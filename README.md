@@ -207,10 +207,10 @@ include 'PDOPlusPlus.php';
 $ppp  = new PDOPlusPlus(PDOPlusPlus::MODE_PREPARE_VALUES); // or shortly : new PPP(PPP::MODE_PREPARE_VALUES);
 $film = $data[1];
 $sql  = <<<sql
-INSERT INTO t_video (video_title, video_support, video_multilingual
-, video_chapter, video_year, video_summary, video_stock)
+INSERT INTO t_video (video_title, video_support, video_multilingual, video_chapter, video_year, video_summary, video_stock)
      VALUES ({$ppp($film['title'])}, {$ppp($film['support'])}, {$ppp($film['multilingual'], 'bool')},
-             {$ppp($film['chapter'], 'int')}, {$ppp($film['year'], 'int')}, {$ppp($film['summary'])}, {$ppp($film['stock'], 'int')})
+             {$ppp($film['chapter'], 'int')}, {$ppp($film['year'], 'int')}, {$ppp($film['summary'])}, 
+             {$ppp($film['stock'], 'int')})
 sql;
 $new_id = $ppp->insert($sql);   // $new_id = 2 (lastInsertId())
 ```
@@ -453,4 +453,4 @@ I'll do so in the next few days.
 Ok guys, that's all folks.
 Enjoy ! 
 
-**rawsrc**  
+**rawsrc**
