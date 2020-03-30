@@ -46,17 +46,18 @@ On error, any function will just log internally the system error using `error_lo
 
 Just because, this:
 ```php
+$film = [
+    'title'        => "The Lord of the Rings - The Fellowship of the Ring",
+    'support'      => 'BLU-RAY',
+    'multilingual' => true,
+    'chapter'      => 1,
+    'year'         => 2001,
+    'summary'      => null,
+    'stock'        => 10
+];
+```
+```php
 try {
-    $film = [
-        'title'        => "The Lord of the Rings - The Fellowship of the Ring",
-        'support'      => 'BLU-RAY',
-        'multilingual' => true,
-        'chapter'      => 1,
-        'year'         => 2001,
-        'summary'      => null,
-        'stock'        => 10
-    ];
-
     $pdo = new PDO("mysql:host=HOST;dbname=DB;port=PORT;connect_timeout=TIMEOUT;", "USER", "PWD", [
        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -94,16 +95,6 @@ try {
 ```
 is replaced by:
 ```php
-$film = [
-    'title'        => "The Lord of the Rings - The Fellowship of the Ring",
-    'support'      => 'BLU-RAY',
-    'multilingual' => true,
-    'chapter'      => 1,
-    'year'         => 2001,
-    'summary'      => null,
-    'stock'        => 10
-];
-
 $ppp = new PPP(PPP::MODE_PREPARE_VALUES);
 $sql  = <<<sql
 INSERT INTO t_video (
