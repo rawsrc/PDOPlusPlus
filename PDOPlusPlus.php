@@ -101,7 +101,7 @@ class PDOPlusPlus
     /**
      * @var bool
      */
-    protected $params_already_binded = false;
+    protected $params_already_bound = false;
 
     /**
      * @return bool
@@ -705,11 +705,11 @@ class PDOPlusPlus
                     $this->stmt->bindValue($token, $v, $pdo_type($this->types[$token]));
                 }
             }
-        } elseif ($this->isModePrepareParams() && $this->hasInParams() && ( ! $this->params_already_binded)) {
+        } elseif ($this->isModePrepareParams() && $this->hasInParams() && ( ! $this->params_already_bound)) {
             foreach ($this->values as $token => &$v) {
                 $this->stmt->bindParam($token, $v, $pdo_type($this->types[$token]));
             }
-            $this->params_already_binded = true;
+            $this->params_already_bound = true;
         }
     }
 
