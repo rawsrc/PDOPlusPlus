@@ -102,6 +102,10 @@ class PDOPlusPlus
      * @var bool
      */
     protected $params_already_bound = false;
+    /**
+     * @var bool
+     */
+    protected $transactional = false;
 
     /**
      * @return bool
@@ -260,6 +264,171 @@ class PDOPlusPlus
     {
         return $this->injectorInByVal()(...$args);
     }
+
+    //region TRANSACTION
+    /**
+     * @return object
+     */
+    public function transaction(): object
+    {
+        return new class($this->transactional, $this->debug) {
+            private $transactional;
+            private $debug;
+
+            public function __construct(&$transactional, $debug)
+            {
+                $this->transactional =& $transactional;
+                $this->debug          = $debug;
+            }
+
+            /**
+             * @return bool
+             */
+            public function isStarted(): bool
+            {
+                return $this->transactional;
+            }
+
+            /**
+             * @param string $sql
+             * @return bool
+             */
+            public function start(string $sql = 'START TRANSACTION;'): bool
+            {
+                return $this->isStarted() ?: $this->execTransaction($sql, 'start', true);
+            }
+
+            /**
+             * Return true if commit = success OR ($auto_rollback = true AND rollback = success)
+             *
+             * @param string $sql
+             * @param bool   $auto_rollback
+             * @param string $rollback_sql
+             * @return bool|null         return null when the transaction is not started
+             */
+            public function commit(string $sql = 'COMMIT;', bool $auto_rollback = true, string $rollback_sql = 'ROLLBACK;'): ?bool
+            {
+                return $this->isStarted()
+                           ? ($this->execTransaction($sql, 'commit') || ($auto_rollback && $this->execTransaction($rollback_sql)))
+                           : null;
+            }
+
+            /**
+             * @param string $sql
+             * @return bool|null        return null when the transaction is not started
+             */
+            public function rollback(string $sql = 'ROLLBACK;'): ?bool
+            {
+                return $this->isStarted() ? $this->execTransaction($sql, 'rollback', false) : null;
+            }
+
+            /**
+             * Common code for start() commit() rollback()
+             *
+             * @param string $sql
+             * @param string $func_name
+             * @param bool   $final_transaction_status
+             * @return bool
+             */
+            private function execTransaction(string $sql, string $func_name, bool $final_transaction_status): bool
+            {
+                try {
+                    \PDOPlusPlus::pdo()->exec($sql);
+                    $this->transactional = $final_transaction_status;
+                    return true;
+                } catch (PDOException $e) {
+                    if ($this->debug) {
+                        var_dump($sql);
+                    }
+                    error_log("PPP::transaction::{$func_name} - ".$e->getMessage());
+                    return false;
+                }
+            }
+
+            /**
+             * If you define a specific SAVEPOINT syntax, you must include your save point name
+             * and define the $point_name to an empty string ''
+             *
+             * By default the SQL syntax is : "SAVEPOINT point_name;"
+             *
+             * @param string $point_name
+             * @param string $sql
+             * @return bool
+             */
+            public function savePoint(string $point_name, string $sql = ''): bool
+            {
+                if ($point_name !== '') {
+                    $sql = "SAVEPOINT {$point_name};";
+                }
+                return $this->execTransactionPoint($sql, 'savePoint');
+            }
+
+            /**
+             * If you define a specific RELEASE syntax, you must include your save point name
+             * and define the $point_name to an empty string ''
+             *
+             * By default the SQL syntax is : "RELEASE SAVEPOINT point_name;"
+             *
+             * @param string $point_name
+             * @param string $sql
+             * @return bool
+             */
+            public function releasePoint(string $point_name, string $sql = ''): bool
+            {
+                if ($point_name !== '') {
+                    $sql = "RELEASE SAVEPOINT {$point_name};";
+                }
+                return $this->execTransactionPoint($sql, 'releasePoint');
+            }
+
+            /**
+             * If you define a specific ROLLBACK syntax, you must include your point name
+             * and define the $point_name to an empty string ''
+             *
+             * By default the SQL syntax is : "ROLLBACK point_name;"
+             *
+             * @param string $point_name
+             * @param string $sql
+             * @return bool
+             */
+            public function rollbackTo(string $point_name, string $sql = ''): bool
+            {
+                if ($point_name !== '') {
+                    $sql = "ROLLBACK {$point_name};";
+                }
+
+                return $this->isStarted() ? $this->execTransactionPoint($sql, 'rollbackTo') : false;
+            }
+
+            /**
+             * Common code for savePoint() releasePoint() rollbackTo()
+             *
+             * @param string $sql
+             * @param string $func_name
+             * @return bool
+             */
+            private function execTransactionPoint(string $sql, string $func_name): bool
+            {
+                if ($this->isStarted()) {
+                    try {
+                        if (empty($sql)) {
+                            return false;
+                        } else {
+                            \PDOPlusPlus::pdo()->exec($sql);
+                            return true;
+                        }
+                    } catch (PDOException $e) {
+                        if ($this->debug) {
+                            var_dump($sql);
+                        }
+                        error_log("PPP::transaction::{$func_name} - ".$e->getMessage());
+                        return false;
+                    }
+                }
+            }
+        };
+    }
+    //endregion
 
     //region INJECTORS
     /**
@@ -513,6 +682,7 @@ class PDOPlusPlus
             }
             return $pdo->lastInsertId();
         } catch (PDOException $e) {
+            $this->rollback();
             if ($this->debug) {
                 var_dump($sql);
             }
@@ -536,6 +706,7 @@ class PDOPlusPlus
             }
             return $this->stmt->fetchAll();
         } catch (PDOException $e) {
+            $this->rollback();
             if ($this->debug) {
                 var_dump($sql);
             }
@@ -577,6 +748,7 @@ class PDOPlusPlus
                 return $this->stmt->rowCount();
             }
         } catch (PDOException $e) {
+            $this->rollback();
             if ($this->debug) {
                 var_dump($sql);
             }
@@ -648,6 +820,7 @@ class PDOPlusPlus
             }
             return $data;
         } catch (PDOException $e) {
+            $this->rollback();
             if ($this->debug) {
                 var_dump($sql);
             }
