@@ -18,6 +18,7 @@ The engine, will automatically escape the values and will let you concentrate on
 - DELETE
 - SELECT
 - STORED PROCEDURE
+- TRANSACTIONS (EVEN NESTED ONES)
 
 For stored procedures, you'll be able to use any `IN`, `OUT` or `INOUT` params.<br>
 `PDOPlusPlus` is also fully compatible with those returning multiple dataset
@@ -436,6 +437,25 @@ $stock = $exec['out']['@stock'];
 $nb_br = $exec['out']['@nb_blu_ray'];
 $nb_dv = $exec['out']['@nb_dvd'];
 ```
+### **TRANSACTIONS**
+PDO++ is fully compatible with the SGBDR transaction mechanism.<br>
+You have several methods that will help you to manage your SQL code flow: 
+* `setTransaction()` to define the execution context of the transaction to come
+* `startTransaction()`
+* `commit()`     
+* `rollback()` that will just rollback to the last save point
+* `rollbackTo()` that will just rollback to the given save point
+* `rollbackAll()` that will rollback to the beginning
+* `savePoint()` to create a new save point (a marker inside a flow of SQL code)
+* `release()` to remove a save point
+* `releaseAll()` to remove all save points
+
+If you're familiar with the SQL transactions theory, the functions are well named and easy to understand.
+
+### **ERRORS**
+As PDO is a resource, i strongly recommend you to always wrap the PDO++ code inside a `try { } catch { }` block.
+On any error, PDO++ will throw an `Excpetion`, so be ready to intercept and treat it as it should be.
+
 ### **CONCLUSION**
 Hope this will help you to produce in a more comfortable way a better SQL code and use PDO natively in your PHP code.
 This code is fully tested. To be compliant with the standards, i have to rewrite all the tests for PHPUnit.

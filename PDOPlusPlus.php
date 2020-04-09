@@ -363,7 +363,7 @@ class PDOPlusPlus
     public function rollbackTo(string $point_name)
     {
         if ($this->is_transactional) {
-            $this->execTransaction("ROLLBACK {$point_name};", 'rollbackTo', null);
+            $this->execTransaction("ROLLBACK TO {$point_name};", 'rollbackTo', null);
         }
     }
 
