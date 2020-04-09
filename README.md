@@ -1,6 +1,6 @@
 # **PDOPlusPlus : a new generation of PDO Wrapper**
 
-`2020-03-27` `PHP 7+`
+`2020-04-09` `PHP 7+`
 
 ## **A PHP full object PDO Wrapper in one class**
 
@@ -18,6 +18,7 @@ The engine, will automatically escape the values and will let you concentrate on
 - DELETE
 - SELECT
 - STORED PROCEDURE
+- TRANSACTIONS (EVEN NESTED ONES)
 
 For stored procedures, you'll be able to use any `IN`, `OUT` or `INOUT` params.<br>
 `PDOPlusPlus` is also fully compatible with those returning multiple dataset
@@ -125,7 +126,7 @@ define('DB_DSN_PARAMS', []);
 ```
 You can also add some personal parameters to the connexion, see `private static function connect()`.
 
-For the course, i will use a very simple database of one table :
+For the course, I will use a very simple database of one table :
 ```sql
 create or replace table db_pdo_plus_plus.t_video
 (
@@ -170,9 +171,9 @@ $data = [[
 ```
 ### **3 DIFFERENT MODES**
 When you create a new instance of PPP, you must choose between 3 different modes:
-- `PDOPlusPlus::MODE_SQL_DIRECT`: omits the preparation mechanism and escape directly the values
-- `PDOPlusPlus::MODE_PREPARE_VALUES`: use the preparation mechanism with `bindValue()`
-- `PDOPlusPlus::MODE_PREPARE_PARAMS`: use the preparation mechanism with `bindParam()`
+- `PDOPlusPlus::MODE_SQL_DIRECT` omits the preparation mechanism and escape directly the values
+- `PDOPlusPlus::MODE_PREPARE_VALUES` use the preparation mechanism with `bindValue()`
+- `PDOPlusPlus::MODE_PREPARE_PARAMS` use the preparation mechanism with `bindParam()`
 
 ### **ADD A RECORD**
 Let's add the first movie into the database using `PDOPlusPlus`:<br>
@@ -275,7 +276,7 @@ $data = $ppp->select($sql);
 ```
 ### **STORED PROCEDURE**
 
-Because of having the possibility to extract many dataset at once or/and also passing multiple parameters 
+Because of having the possibility to extract many datasets at once or/and also passing multiple parameters 
 `IN`, `OUT` or `INOUT`, most of the time you will have to use a specific value injector as shown below.
 
 #### **ONE DATASET**
@@ -431,14 +432,33 @@ Please be careful with the syntax for the `INOUT` injector.
 $ppp   = new PPP(PPP::MODE_SQL_DIRECT);
 $io    = $ppp->injector('inout');       // io => input/output
 $out   = $ppp->injector('out');
-$exec  = $ppp->call("CALL sp_nb_films_one_inout_two_out_param({$io('25', '@stock', 'int')}, {$out('@nb_blu_ray')}, {$out('@nb_dvd')})");
+$exec  = $ppp->call("CALL sp_nb_films_one_inout_two_out_param({$io('25', '@stock', 'int')}, {$out('@nb_blu_ray')}, {$out('@nb_dvd')})", false);
 $stock = $exec['out']['@stock'];
 $nb_br = $exec['out']['@nb_blu_ray'];
 $nb_dv = $exec['out']['@nb_dvd'];
 ```
+### **TRANSACTIONS**
+PDO++ is fully compatible with the RDBS transaction mechanism.<br>
+You have several methods that will help you to manage your SQL code flow: 
+* `setTransaction()` to define the execution context of the transaction to come
+* `startTransaction()`
+* `commit()`     
+* `rollback()` that will just rollback to the last save point
+* `rollbackTo()` that will just rollback to the given save point
+* `rollbackAll()` that will rollback to the beginning
+* `savePoint()` to create a new save point (a marker inside a flow of SQL code)
+* `release()` to remove a save point
+* `releaseAll()` to remove all save points
+
+If you're familiar with the SQL transactions theory, the functions are well named and easy to understand.
+
+### **ERRORS**
+As PDO is a resource, i strongly recommend you to always wrap the PDO++ code inside a `try { } catch { }` block.
+On any error, PDO++ will throw an `Excpetion`, so be ready to intercept and treat it as it should be.
+
 ### **CONCLUSION**
 Hope this will help you to produce in a more comfortable way a better SQL code and use PDO natively in your PHP code.
-This code is fully tested. To be compliant with the standards, i have to rewrite all the tests for PHPUnit.
+This code is fully tested. To be compliant with the standards, I have to rewrite all the tests for PHPUnit.
 I'll do so in the next few days.
 
 Ok guys, that's all folks.

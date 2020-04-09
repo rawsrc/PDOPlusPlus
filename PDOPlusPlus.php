@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace rawsrc\PDOPlusPlus;
 
 use BadMethodCallException;
+use Exception;
 use PDO;
-use PDOException;
 use PDOStatement;
 use TypeError;
 
@@ -102,6 +102,14 @@ class PDOPlusPlus
      * @var bool
      */
     protected $params_already_bound = false;
+    /**
+     * @var bool
+     */
+    protected $is_transactional = false;
+    /**
+     * @var array used by nested transactions
+     */
+    protected $save_points = [];
 
     /**
      * @return bool
@@ -210,6 +218,7 @@ class PDOPlusPlus
      * @param string $timeout
      * @param array  $pdo_params others parameters for PDO          [key => value]
      * @param array  $dsn_params other parameter for the dsn string [string]
+     * @throws Exception
      */
     protected static function connect(
         string $scheme = DB_SCHEME, string $host = DB_HOST, string $database = DB_NAME, string $user = DB_USER,
@@ -238,7 +247,7 @@ class PDOPlusPlus
 
         try {
             self::$pdo = new PDO($dsn, $user, $pwd, $params);
-        } catch (PDOException $e) {
+        } catch (Exception $e) {
             throw $e;
         }
     }
@@ -260,6 +269,157 @@ class PDOPlusPlus
     {
         return $this->injectorInByVal()(...$args);
     }
+
+    //region TRANSACTION
+    /**
+     * The SQL "SET TRANSACTION" must be defined before starting
+     * a new transaction otherwise it will be ignored
+     *
+     * @param string $sql
+     * @throws Exception
+     */
+    public function setTransaction(string $sql)
+    {
+        if ( ! $this->is_transactional) {
+            $this->execTransaction($sql, 'setTransaction', false);
+        }
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function startTransaction()
+    {
+        // transaction already started
+        if ($this->is_transactional) {
+            // for nested transaction create internally a save point
+            // to be able to rollback only the current transaction
+            // as PDO only rollback all the transactions
+            $save_point = self::tag('');
+            $this->savePoint($save_point);
+        } else {
+            $this->execTransaction('START TRANSACTION;', 'startTransaction', true);
+        }
+    }
+
+    /**
+     * The commit apply always to the whole transaction at once
+     *
+     * @throws Exception
+     */
+    public function commit()
+    {
+        if ($this->is_transactional) {
+            $this->execTransaction('COMMIT;', 'commit', false);
+        }
+    }
+
+    /**
+     * Rollback only the last transaction
+     *
+     * @throws Exception
+     */
+    public function rollback()
+    {
+        if ($this->is_transactional) {
+            if (empty($this->save_points)) {
+                $this->execTransaction('ROLLBACK;', 'rollback', false);
+            } else {
+                $save_point = array_pop($this->save_points);
+                $this->rollbackTo($save_point);
+            }
+        }
+    }
+
+    /**
+     * Rollback the whole transaction at once
+     *
+     * @throws Exception
+     */
+    public function rollbackAll()
+    {
+        $this->save_points = [];
+        $this->rollback();
+    }
+
+    /**
+     * Create a save point
+     *
+     * @param string $point_name
+     * @throws Exception
+     */
+    public function savePoint(string $point_name)
+    {
+        if ($this->is_transactional) {
+            $this->execTransaction("SAVEPOINT {$point_name};", 'savePoint', null);
+            $this->save_points[] = $point_name;
+        }
+    }
+
+    /**
+     * @param string $point_name
+     * @throws Exception
+     */
+    public function rollbackTo(string $point_name)
+    {
+        if ($this->is_transactional) {
+            $this->execTransaction("ROLLBACK TO {$point_name};", 'rollbackTo', null);
+        }
+    }
+
+    /**
+     * Release a save point
+     *
+     * @param string $point_name
+     * @throws Exception
+     */
+    public function release(string $point_name)
+    {
+        if ($this->is_transactional && in_array($point_name, $this->save_points, true)) {
+            $this->execTransaction("RELEASE SAVEPOINT {$point_name};", 'release', null);
+            $pos = array_search($point_name, $this->save_points, true);
+            $this->save_points = array_slice($this->save_points, 0, $pos);
+        }
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function releaseAll()
+    {
+        // releasing the first save point will release the others
+        if ( ! empty($this->save_points)) {
+            $this->release($this->save_points[0]);
+        }
+    }
+
+    /**
+     * Common code
+     *
+     * @param string    $sql
+     * @param string    $func_name
+     * @param bool|null $final_transaction_status
+     * @throws Exception
+     */
+    private function execTransaction(string $sql, string $func_name, ?bool $final_transaction_status)
+    {
+        try {
+            self::pdo()->exec($sql);
+            if (is_bool($final_transaction_status)) {
+                $this->is_transactional = $final_transaction_status;
+            }
+            if ($this->is_transactional === false) {
+                $this->save_points = [];
+            }
+        } catch (Exception $e) {
+            if ($this->debug) {
+                var_dump($sql);
+            }
+            error_log("PPP::execTransaction::{$func_name} - ".$e->getMessage());
+            throw $e;
+        }
+    }
+    //endregion
 
     //region INJECTORS
     /**
@@ -498,8 +658,9 @@ class PDOPlusPlus
     //endregion
 
     /**
-     * @param  string $sql
+     * @param string $sql
      * @return int|null           lastInsertId() | null on error
+     * @throws Exception
      */
     public function insert(string $sql)
     {
@@ -512,20 +673,21 @@ class PDOPlusPlus
                 $this->stmt->execute();
             }
             return $pdo->lastInsertId();
-        } catch (PDOException $e) {
+        } catch (Exception $e) {
             if ($this->debug) {
                 var_dump($sql);
             }
             error_log('PPP::insert - '.$e->getMessage());
-            return null;
+            throw $e;
         }
     }
 
     /**
      * @param  mixed $sql
-     * @return array|null       null on error
+     * @return array
+     * @throws Exception
      */
-    public function select($sql): ?array
+    public function select($sql): array
     {
         try {
             if ($this->isModeSQLDirect()) {
@@ -535,38 +697,41 @@ class PDOPlusPlus
                 $this->stmt->execute();
             }
             return $this->stmt->fetchAll();
-        } catch (PDOException $e) {
+        } catch (Exception $e) {
             if ($this->debug) {
                 var_dump($sql);
             }
             error_log('PPP::select - '.$e->getMessage());
-            return null;
+            throw $e;
         }
     }
 
     /**
      * @param  string $sql
-     * @return int|null         null on error | int -> nb of affected rows
+     * @return int           nb of affected rows
+     * @throws Exception
      */
-    public function update(string $sql)
+    public function update(string $sql): int
     {
         return $this->execute($sql);
     }
 
     /**
      * @param  string $sql
-     * @return int|null         null on error | int -> nb of affected rows
+     * @return int           nb of affected rows
+     * @throws Exception
      */
-    public function delete(string $sql)
+    public function delete(string $sql): int
     {
         return $this->execute($sql);
     }
 
     /**
-     * @param  string $sql
-     * @return int|null         null on error | int -> nb of affected rows
+     * @param string $sql
+     * @return int             nb of affected rows
+     * @throws Exception
      */
-    public function execute(string $sql)
+    public function execute(string $sql): int
     {
         try {
             if ($this->isModeSQLDirect()) {
@@ -576,19 +741,20 @@ class PDOPlusPlus
                 $this->stmt->execute();
                 return $this->stmt->rowCount();
             }
-        } catch (PDOException $e) {
+        } catch (Exception $e) {
             if ($this->debug) {
                 var_dump($sql);
             }
             error_log('PPP::execute - '.$e->getMessage());
-            return null;
+            throw $e;
         }
     }
 
     /**
      * @param string $sql
      * @param bool   $is_query
-     * @return mixed             null on error
+     * @return mixed
+     * @throws Exception
      */
     public function call(string $sql, bool $is_query)
     {
@@ -647,31 +813,32 @@ class PDOPlusPlus
                 $data['out'] = $this->extractOutParams();
             }
             return $data;
-        } catch (PDOException $e) {
+        } catch (Exception $e) {
             if ($this->debug) {
                 var_dump($sql);
             }
             error_log('PPP::call - '.$e->getMessage());
-            return null;
+            throw $e;
         }
     }
 
     /**
-     * @return array|null       [out_param => value] | null on error
+     * @return array|null       [out_param => value]
+     * @throws Exception
      */
-    public function extractOutParams(): ?array
+    public function extractOutParams(): array
     {
         if ($this->hasOutParams()) {
             try {
                 $sql  = 'SELECT '.implode(', ', $this->outParams());
                 $stmt = self::pdo()->query($sql);
                 return $stmt->fetchAll()[0];
-            } catch (PDOException $e) {
+            } catch (Exception $e) {
                 if ($this->debug) {
                     var_dump($sql);
                 }
                 error_log('PPP::extractOutParams - '.$e->getMessage());
-                return null;
+                throw $e;
             }
         } else {
             return [];
@@ -713,7 +880,7 @@ class PDOPlusPlus
         }
     }
 
-    public function closeCursor(): void
+    public function closeCursor()
     {
         if (isset($this->stmt)) {
             $this->stmt->closeCursor();
@@ -723,12 +890,14 @@ class PDOPlusPlus
     /**
      * Unique tag generator
      * The tag is always unique for the whole current session
+     *
+     * @param string $prepend
      * @return string
      */
-    public static function tag(): string
+    public static function tag(string $prepend = ':'): string
     {
         do {
-            $tag = ':'.substr(str_shuffle(self::ALPHA), 0, 6).mt_rand(1000, 9999);
+            $tag = $prepend.substr(str_shuffle(self::ALPHA), 0, 6).mt_rand(1000, 9999);
         } while (isset(self::$tags[$tag]));
         self::$tags[$tag] = true;
         return $tag;
@@ -737,6 +906,7 @@ class PDOPlusPlus
     /**
      * Unique tags generator
      * The tags are always unique for the whole current session
+     *
      * @param  array $keys
      * @return array        [key => tag]
      */
@@ -753,7 +923,7 @@ class PDOPlusPlus
      * @param        $value
      * @param string $type      among: int str float double num numeric bool
      * @param bool   $for_pdo
-     * @return mixed|array       if $for_pdo => [0 => value, 1 => pdo type] | plain escaped value
+     * @return mixed|array      if $for_pdo => [0 => value, 1 => pdo type] | plain escaped value
      */
     public static function sqlValue($value, string $type, bool $for_pdo)
     {
