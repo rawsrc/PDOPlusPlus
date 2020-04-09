@@ -1,6 +1,6 @@
 # **PDOPlusPlus : a new generation of PDO Wrapper**
 
-`2020-03-27` `PHP 7+`
+`2020-04-09` `PHP 7+`
 
 ## **A PHP full object PDO Wrapper in one class**
 
