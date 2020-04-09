@@ -454,7 +454,7 @@ If you're familiar with the SQL transactions theory, the functions are well name
 
 ### **ERRORS**
 As PDO is a resource, i strongly recommend you to always wrap the PDO++ code inside a `try { } catch { }` block.
-On any error, PDO++ will throw an `Excpetion`, so be ready to intercept and treat it as it should be.
+On any error, PDO++ will throw an `Exception`, so be ready to intercept and treat it as it should be.
 
 ### **CONCLUSION**
 Hope this will help you to produce in a more comfortable way a better SQL code and use PDO natively in your PHP code.
