@@ -378,7 +378,7 @@ class PDOPlusPlus
         if ($this->is_transactional && in_array($point_name, $this->save_points, true)) {
             $this->execTransaction("RELEASE SAVEPOINT {$point_name};", 'release', null);
             $pos = array_search($point_name, $this->save_points, true);
-            $this->save_points = array_slice($this->save_points, 0, $pos);
+            unset ($this->save_points[$pos]);
         }
     }
 
@@ -387,9 +387,8 @@ class PDOPlusPlus
      */
     public function releaseAll()
     {
-        // releasing the first save point will release the others
-        if ( ! empty($this->save_points)) {
-            $this->release($this->save_points[0]);
+        foreach ($this->save_points as $point) {
+            $this->release($point);
         }
     }
 
