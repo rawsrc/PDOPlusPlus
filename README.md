@@ -239,7 +239,6 @@ Please note, to pass the references to the `PDOPlusPlus` instance, you **MUST** 
 returned by `->injectorInByRef();`. Otherwise it will not work.
 ```php
 include 'PDOPlusPlus.php';
-// when there's no parameters, use the MODE_SQL_DIRECT
 $ppp = new PPP();
 $ppp->execute('TRUNCATE TABLE t_video');
 
