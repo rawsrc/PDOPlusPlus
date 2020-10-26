@@ -46,12 +46,12 @@ Since, the version 3.x, it is also possible to mix the way you inject your value
 
 To cover all use cases, there's now 7 different injectors:
 - `injectorInSql()`: injected values are directly escaped (plain sql). **THIS IS THE DEFAULT INJECTOR**
-- `injectorInByVal()`: injected values are escaped using the PDOStatement->bindValue() mechanism
-- `injectorInByRef()`: injected values are escaped using the PDOStatement->bindParam() mechanism
+- `injectorInByVal()`: injected values are escaped using the `PDOStatement->bindValue()` mechanism
+- `injectorInByRef()`: injected values are escaped using the `PDOStatement->bindParam()` mechanism
 - `injectorOut()`: for stored procedure with only OUT param
 - `injectorInOutSql()`: for stored procedure with INOUT param, IN param is directly escaped (plain sql)
-- `injectorInOutByVal()`: for stored procedure with INOUT param, IN param is escaped using the PDOStatement->bindValue() mechanism
-- `injectorInOutByRef()`: for stored procedure with INOUT param, IN param is escaped using the PDOStatement->bindParam() mechanism
+- `injectorInOutByVal()`: for stored procedure with INOUT param, IN param is escaped using the `PDOStatement->bindValue()` mechanism
+- `injectorInOutByRef()`: for stored procedure with INOUT param, IN param is escaped using the `PDOStatement->bindParam()` mechanism
 
 ### **WHAT'S NEW AND CHANGES FROM VERSION 2.x**
 
