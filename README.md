@@ -55,7 +55,7 @@ To cover all use cases, there's now 7 different injectors:
 
 ### **WHAT'S NEW AND CHANGES FROM VERSION 2.x**
 
-**This version breaks the compatibilty with the previous 1.0**<br>
+**This version breaks the compatibilty with the previous 2.0**<br>
 
 As there's no more need to define a global way of injecting values, the engine will let you to proceed as you want.
 That's mean your are even able now to mix in the same SQL string different ways of passing the values.
