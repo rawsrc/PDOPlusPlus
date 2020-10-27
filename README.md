@@ -30,7 +30,7 @@ The power of `PDOPlusPlus` is directly linked to the way the instance is
  called as a function using the PHP magic function `__invoke()`<br>
 All you have to choose is the right injector to write the SQL and at
  the same time pass the different values to the query.<br>
-Here's the global scheme for the concept:
+Here's the global scheme of the concept:
  
  ![PDOPlusPlus Concept](/PDOPlusPlusConcept.png)
 
