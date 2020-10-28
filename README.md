@@ -42,7 +42,7 @@ a stored procedure, then you must use a specific injector.
 
  ![PDOPlusPlus Concept](/PDOPlusPlusOut.png)
 
-Since, the version 3.x, it is also possible to mix the way you inject your values within the same SQL string !
+Since, the version 3.x, it is also possible to mix the way you inject your values into the same SQL string !
 
 To cover all use cases, there's now 7 different injectors:
 - `injectorInSql()`: injected values are directly escaped (plain sql). **THIS IS THE DEFAULT INJECTOR**
@@ -55,7 +55,7 @@ To cover all use cases, there's now 7 different injectors:
 
 ### **WHAT'S NEW AND CHANGES FROM VERSION 2.x**
 
-**This version breaks the compatibilty with the previous 2.0**<br>
+**This version breaks the compatibilty with the previous 2.x**<br>
 
 As there's no more need to define a global way of injecting values, the engine will let you to proceed as you want.
 That's mean your are even able now to mix in the same SQL string different ways of passing the values.
@@ -313,7 +313,7 @@ And now, call it:
 $ppp  = new PPP();
 $rows = $ppp->call('CALL sp_list_films()', true);   // the true tells PPP that SP is a query
 // $rows is an multidimensional array: 
-// $row[0] => for the first dataset which is an array of all films  
+// $rows[0] => for the first dataset which is an array of all films  
 ```
 #### **TWO DATASET AT ONCE**
 Let's create a SP that just return a double dataset at once:
@@ -334,8 +334,8 @@ And now, call it:
 $ppp  = new PPP();
 $rows = $ppp->call('CALL sp_list_films_group_by_support()', true); // the true tells PPP that SP is a query
 // $rows is an multidimensional array: 
-// $row[0] => for the first dataset which is an array of films (BLU-RAY) 
-// $row[1] => for the second dataset which is an array of films (DVD)
+// $rows[0] => for the first dataset which is an array of films (BLU-RAY) 
+// $rows[1] => for the second dataset which is an array of films (DVD)
 ```
 #### **ONE IN PARAM**
 Let's create a SP with one IN Param:
@@ -357,7 +357,7 @@ sql
 $ppp  = new PPP();
 $rows = $ppp->call("CALL sp_list_films_one_in_param({$ppp('DVD')})", true);
 // $rows is an multidimensional array: 
-// $row[0] => for the first dataset which is an array of films (DVD)
+// $rows[0] => for the first dataset which is an array of films (DVD)
 
 // EXACTLY THE SAME USING ->bindValue()
 $ppp  = new PPP();
