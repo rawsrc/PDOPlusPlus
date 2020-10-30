@@ -859,24 +859,23 @@ class PDOPlusPlus
         if (empty($this->tagsByMode([self::VAR_IN_BY_VAL, self::VAR_IN_BY_REF, self::VAR_INOUT_BY_VAL, self::VAR_INOUT_BY_REF]))) {
             return $sql;
         }
+        /**
+         * @param  string $p    among: int str float double num numeric bool
+         * @return int
+         */
+        $pdo_type = function(string $p): int {
+            return [
+                    'null' => PDO::PARAM_NULL,
+                    'int'  => PDO::PARAM_INT,
+                    'bool' => PDO::PARAM_BOOL,
+                ][$p] ?? PDO::PARAM_STR;
+        };
 
         // initial binding
         if ($this->params_already_bound === false) {
             if ( ! ($this->stmt instanceof PDOStatement)) {
                 $this->stmt = self::pdo()->prepare($sql);
             }
-
-            /**
-             * @param  string $p    among: int str float double num numeric bool
-             * @return int
-             */
-            $pdo_type = function(string $p): int {
-                return [
-                        'null' => PDO::PARAM_NULL,
-                        'int'  => PDO::PARAM_INT,
-                        'bool' => PDO::PARAM_BOOL,
-                    ][$p] ?? PDO::PARAM_STR;
-            };
 
             // params using ->bindValue()
             foreach ($this->tagsByMode([self::VAR_IN_BY_VAL, self::VAR_INOUT_BY_VAL]) as $tag => $v) {
