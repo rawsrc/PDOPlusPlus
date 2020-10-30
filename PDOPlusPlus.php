@@ -79,6 +79,10 @@ class PDOPlusPlus
      */
     protected $inout_params = [];
     /**
+     * @var array
+     */
+    protected $last_bound_type_tags_by_ref = [];
+    /**
      * @var bool
      */
     protected $debug;
@@ -438,7 +442,7 @@ class PDOPlusPlus
             {
                 $this->data      =& $data;
                 $this->in_params =& $in_params;
-                $this->mode      = $mode;
+                $this->mode      =  $mode;
             }
 
             /**
@@ -827,9 +831,9 @@ class PDOPlusPlus
     private function tagsByMode(array $modes): array
     {
         $data = [];
-        foreach ($this->data as $tag => $v) {
+        foreach ($this->data as $tag => &$v) {
             if (in_array($v['mode'], $modes, true)) {
-                $data[$tag] = $v;
+                $data[$tag] =& $v;
             }
         }
         return $data;
@@ -856,6 +860,7 @@ class PDOPlusPlus
             return $sql;
         }
 
+        // initial binding
         if ($this->params_already_bound === false) {
             if ( ! ($this->stmt instanceof PDOStatement)) {
                 $this->stmt = self::pdo()->prepare($sql);
@@ -875,13 +880,39 @@ class PDOPlusPlus
 
             // params using ->bindValue()
             foreach ($this->tagsByMode([self::VAR_IN_BY_VAL, self::VAR_INOUT_BY_VAL]) as $tag => $v) {
-                $this->stmt->bindValue($tag, $v['value'], $pdo_type($v['type']));
+                $pdo_value = self::sqlValue($v['value'], $v['type'], true);
+                $this->stmt->bindValue($tag, $pdo_value[0], $pdo_value[1]);
             }
             // params using ->bindParam()
-            foreach ($this->tagsByMode([self::VAR_IN_BY_REF, self::VAR_INOUT_BY_REF]) as $tag => $v) {
-                $this->stmt->bindParam($tag, $v['value'], $pdo_type($v['type']));
+            foreach ($this->tagsByMode([self::VAR_IN_BY_REF, self::VAR_INOUT_BY_REF]) as $tag => &$v) {
+                $type = $pdo_type($v['type']);
+                $this->stmt->bindParam($tag, $v['value'], $type);
+                $this->last_bound_type_tags_by_ref[$tag] = $type;
             }
             $this->params_already_bound = true;
+        }
+
+        // explicit casting fot values by ref and rebinding for null values
+        $data_by_ref = $this->tagsByMode([self::VAR_IN_BY_REF, self::VAR_INOUT_BY_REF]);
+        foreach ($data_by_ref as $tag => &$v) {
+            $current = self::sqlValue($v['value'], $v['type'], true);
+            // if the current value is null and the previous is not then rebind explicitly the param according to null
+            // and the same in the opposite way
+            $current_type  = $current[1];
+            $previous_type = $this->last_bound_type_tags_by_ref[$tag];
+            if (($current_type === PDO::PARAM_NULL) && ($previous_type !== PDO::PARAM_NULL)) {
+                $this->stmt->bindParam($tag, $v['value'], PDO::PARAM_NULL);
+                $this->last_bound_type_tags_by_ref[$tag] = PDO::PARAM_NULL;
+            } elseif (($current_type !== PDO::PARAM_NULL) && ($previous_type === PDO::PARAM_NULL)) {
+                // rebind the parameter with the initial type
+                $this->stmt->bindParam($tag, $v['value'], $pdo_type($v['type']));
+                $this->last_bound_type_tags_by_ref[$tag] = $pdo_type($v['type']);
+            }
+
+            // explicit casting for var by ref
+            if ($v['value'] !== null) {
+                $v['value'] = $current[0];
+            }
         }
 
         return true;
