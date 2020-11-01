@@ -1,6 +1,6 @@
 # **PDOPlusPlus : a new generation of PDO Wrapper**
 
-`2020-10-26` `PHP 7.1+`
+`2020-11-01` `PHP 7.1+`
 
 ## **A PHP full object PDO Wrapper in one class**
 
@@ -55,7 +55,7 @@ To cover all use cases, there's now 7 different injectors:
 
 ### **WHAT'S NEW AND CHANGES FROM VERSION 2.x**
 
-**This version breaks the compatibilty with the previous 2.x**<br>
+**This version breaks the compatibility with the previous 2.x**<br>
 
 As there's no more need to define a global way of injecting values, the engine will let you to proceed as you want.
 That's mean your are even able now to mix in the same SQL string different ways of passing the values.
@@ -65,6 +65,10 @@ All you have is to choose the right injector for your needs.
 There's a new mechanism to intercept potential crashes on executing/querying SQL.<br>
 Using this, you do not have anymore to get your SQL code embedded in the a `try {...} catch (Exception $e) {...}` block.<br>
 See chapter **ERRORS** below.
+
+The version v3.1.0 is now able to manage a pool of database connections. You have to define for each connection an id 
+and use it when you create a new instance of `PDOPlusPlus` to tell the engine which connection should be used.
+This is fully compatible with the old way of connecting to the database using constants.
 
 ### **WHY PDOPlusPlus ?**
 
@@ -134,10 +138,10 @@ $id = $ppp->insert($sql);
 ```
 With exactly the same level of security !
 
-### **HOW TO USE IT**
+### **HOW TO USE IT - CONNECTION TO THE DATABASE**
 
 As written, `PDOPlusPlus` is as PDO Wrapper, so it will have to connect to your database using PDO of course.
-So the first step is to provide the connexion parameters to the class. It's highly recommended to use constants : 
+So the first step is to provide the connexion parameters to the class. You can use constants like this: 
 ```php
 define('DB_SCHEME', 'mysql');
 define('DB_HOST', 'localhost');
@@ -149,7 +153,38 @@ define('DB_TIMEOUT', '5');
 define('DB_PDO_PARAMS', []);
 define('DB_DSN_PARAMS', []);
 ```
-You can also add some personal parameters to the connexion, see `private static function connect()`.
+Since v3.1.0, you can also open as many database connections as you want using the same `PDOPlusPlus` instance.<br>
+See `PDOPlusPlus::addCnxParams(string $cnx_id, array $params, bool $is_default = true)`<br> 
+First, you have to create a name for the connection (`$cnx_id`), then tell the engine how to connect (`$params`), and finally flag to true (`$is_default`) if needed. 
+Then, each time you will create a new instance of `PDOPlusPlus`, you'd able to select the right connection to use for you work.<br> 
+If you omit the parameter then the default connection will be used.
+
+It is also possible to change the default connection's id once defined, see : `PDOPlusPlus::changeDefaultConnectionTo(string $cnx_id)`<br>
+
+For example, two connections: one for a power user called `'root'`, and a second for a simple user called `'user'`
+```php
+PDOPlusPlus::addCnxParams('root', [
+    'scheme'   => 'mysql', 
+    'host'     => 'localhost', 
+    'database' => 'db_pdo_plus_plus',
+    'user'     => 'root',
+    'pwd'      => '',
+    'port'     => '3306',
+    'timeout'  => '5'  
+], false);
+PDOPlusPlus::addCnxParams('user', [
+    'scheme'   => 'mysql', 
+    'host'     => 'localhost', 
+    'database' => 'db_pdo_plus_plus',
+    'user'     => 'db_user',
+    'pwd'      => '',
+    'port'     => '3306',
+    'timeout'  => '5'  
+], true);
+```
+You can now define the right connection for the SQL you have to execute on the server.
+`$ppp = new PDOPlusPlus('root');` or<br>
+`$ppp = new PDOPlusPlus('user');` which is equivalent to `$ppp = new PDOPlusPlus();`
 
 For the course, I will use a very simple database of one table :
 ```sql

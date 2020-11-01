@@ -2,6 +2,17 @@
 
 namespace rawsrc\PDOPlusPlus;
 
+use const DB_SCHEME;
+use const DB_HOST;
+use const DB_NAME;
+use const DB_USER;
+use const DB_PWD;
+use const DB_PORT;
+use const DB_TIMEOUT;
+use const DB_PDO_PARAMS;
+use const DB_DSN_PARAMS;
+
+use BadMethodCallException;
 use Closure;
 use Exception;
 use PDO;
@@ -54,11 +65,23 @@ class PDOPlusPlus
     /**
      * @var PDO
      */
-    protected static $pdo = null;
+    protected static $pdo = [];
+    /**
+     * @var array [cnx id => [key => value]]
+     */
+    protected static $cnx_params = [];
+    /**
+     * @var string
+     */
+    protected static $default_cnx_id;
     /**
      * @var array   List all generated tags during the current session
      */
     protected static $tags = [];
+    /**
+     * @var string
+     */
+    protected $current_cnx_id;
     /**
      * User data injected in the sql string
      * @var array [tag => [value => user value, type => user type, mode => const VAR_xxx]
@@ -138,10 +161,12 @@ class PDOPlusPlus
     }
 
     /**
-     * @param bool $debug
+     * @param string|null $cnx_id if null then the default connection will be used
+     * @param bool        $debug
      */
-    public function __construct(bool $debug = false)
+    public function __construct(?string $cnx_id = null, bool $debug = false)
     {
+        $this->current_cnx_id = $cnx_id;
         $this->debug = $debug;
     }
 
@@ -172,14 +197,84 @@ class PDOPlusPlus
     }
 
     /**
+     * @param string|null $cnx_id   null => default connection
      * @return PDO
+     * @throws Exception
      */
-    public static function pdo(): PDO
+    public static function pdo(?string $cnx_id = null): PDO
     {
-        if (self::$pdo === null) {
-            self::connect();
+        if ($cnx_id === null) {
+            if (isset(static::$default_cnx_id)) {
+                $cnx_id = static::$default_cnx_id;
+            } else {
+                // try to connect using the old way (using constants)
+                static::$pdo['default'] = static::connect(
+                    DB_SCHEME, DB_HOST, DB_NAME, DB_USER, DB_PWD, DB_PORT,
+                    DB_TIMEOUT, DB_PDO_PARAMS, DB_DSN_PARAMS
+                );
+                static::$default_cnx_id = 'default';
+                return static::$pdo['default'];
+            }
         }
-        return self::$pdo;
+
+        if (isset(static::$pdo[$cnx_id])) {
+            return static::$pdo[$cnx_id];
+        }
+
+        if (isset(static::$cnx_params[$cnx_id])) {
+            $params = static::$cnx_params[$cnx_id];
+            static::$pdo[$cnx_id] = self::connect(
+                $params['scheme'], $params['host'], $params['database'], $params['user'], $params['pwd'],
+                $params['port'], $params['timeout'], $params['pdo_params'] ?? [], $params['dsn_params'] ?? []
+            );
+            return static::$pdo[$cnx_id];
+        }
+
+        throw new BadMethodCallException('Unknown connection id');
+    }
+
+    /**
+     * Create a pool of database connections
+     * You juste have to store all the parameters for a connection
+     * $params = [
+     *     'scheme'     => string (mysql pgsql...)
+     *     'host'       => string (server host)
+     *     'database'   => string (database name)
+     *     'user'       => string (user name)
+     *     'pwd'        => string (password)
+     *     'port'       => string (port number)
+     *     'timeout'    => string (seconds)
+     *     'pdo_params' => others parameters for PDO: array [key => value]
+     *     'dsn_params' => other parameter for the dsn string: array [string]
+     * ]
+     *
+     * Careful all keys except 'pdo_params' and 'dsn_params' are required
+     * If one is missing then an Exception will be thrown
+     *
+     * @param string $cnx_id
+     * @param array  $params
+     * @param bool   $is_default
+     * @throws BadMethodCallException
+     */
+    public static function addCnxParams(string $cnx_id, array $params, bool $is_default = true)
+    {
+        if (isset($params['scheme'], $params['host'], $params['database'], $params['user'],
+            $params['pwd'], $params['port'], $params['timeout'])) {
+            static::$cnx_params[$cnx_id] = $params;
+            if ($is_default) {
+                static::$default_cnx_id = $cnx_id;
+            }
+        } else {
+            throw new BadMethodCallException('Invalid connection parameters');
+        }
+    }
+
+    /**
+     * @param string $cnx_id
+     */
+    public static function changeDefaultConnectionTo(string $cnx_id)
+    {
+        static::$default_cnx_id = $cnx_id;
     }
 
     //region DATABASE CONNECTION
@@ -200,11 +295,9 @@ class PDOPlusPlus
      * @param array  $dsn_params other parameter for the dsn string [string]
      * @throws Exception
      */
-    protected static function connect(
-        string $scheme = DB_SCHEME, string $host = DB_HOST, string $database = DB_NAME, string $user = DB_USER,
-        string $pwd = DB_PWD, string $port = DB_PORT, string $timeout = DB_TIMEOUT, array $pdo_params = DB_PDO_PARAMS,
-        array $dsn_params = DB_DSN_PARAMS
-    ) {
+    protected static function connect(string $scheme, string $host, string $database, string $user, string $pwd,
+                                      string $port, string $timeout, array $pdo_params = [], array $dsn_params = [])
+    {
         $dsn = "{$scheme}:host={$host};dbname={$database};";
 
         if ((int)($port)) {
@@ -226,7 +319,7 @@ class PDOPlusPlus
         ];
 
         try {
-            self::$pdo = new PDO($dsn, $user, $pwd, $params);
+            return new PDO($dsn, $user, $pwd, $params);
         } catch (Exception $e) {
             throw $e;
         }
@@ -381,7 +474,7 @@ class PDOPlusPlus
     private function execTransaction(string $sql, string $func_name, ?bool $final_transaction_status)
     {
         try {
-            self::pdo()->exec($sql);
+            self::pdo($this->current_cnx_id)->exec($sql);
             if (is_bool($final_transaction_status)) {
                 $this->is_transactional = $final_transaction_status;
             }
@@ -679,7 +772,7 @@ class PDOPlusPlus
     {
         try {
             $result = $this->builtPrepareAndAttachValuesOrParams($sql);
-            $pdo    = self::pdo();
+            $pdo    = self::pdo($this->current_cnx_id);
             if ($result === true) {
                 $this->stmt->execute();
             } else {
@@ -708,7 +801,7 @@ class PDOPlusPlus
             if ($result === true) {
                 $this->stmt->execute();
             } else {
-                $this->stmt = self::pdo()->query($result);
+                $this->stmt = self::pdo($this->current_cnx_id)->query($result);
             }
             return $this->stmt->fetchAll();
         } catch (Exception $e) {
@@ -754,7 +847,7 @@ class PDOPlusPlus
                 $this->stmt->execute();
                 return $this->stmt->rowCount();
             } else {
-                return self::pdo()->exec($result);
+                return self::pdo($this->current_cnx_id)->exec($result);
             }
         } catch (Exception $e) {
             $this->exceptionInterceptor($e, $sql, 'execute');
@@ -775,14 +868,16 @@ class PDOPlusPlus
     public function call(string $sql, bool $is_query)
     {
         try {
-            $pdo = self::pdo();
+            $pdo = self::pdo($this->current_cnx_id);
 
             $inject_io_values = function() use ($pdo) {
                 if ($this->hasInOutParams()) {
                     $sql = [];
                     foreach ($this->inout_params as $tag => $io) {
                         // Injecting one by one io_params's value using SQL syntax : "SET @io_param = value"
-                        $sql[] = "SET {$io} = ".self::sqlValue($this->data[$tag]['value'], $this->data[$tag]['type'], false);
+                        $sql[] = "SET {$io} = ".self::sqlValue(
+                            $this->data[$tag]['value'], $this->data[$tag]['type'], false, $this->current_cnx_id
+                        );
                     }
                     $sql = implode(';', $sql);
                     $pdo->exec($sql);
@@ -845,7 +940,7 @@ class PDOPlusPlus
         if ($this->hasOutParams()) {
             try {
                 $sql  = 'SELECT '.implode(', ', $this->outParams());
-                $stmt = self::pdo()->query($sql);
+                $stmt = self::pdo($this->current_cnx_id)->query($sql);
                 return $stmt->fetchAll()[0];
             } catch (Exception $e) {
                 $this->exceptionInterceptor($e, $sql, 'extractOutParams');
@@ -888,7 +983,7 @@ class PDOPlusPlus
 
         // replace tags by plain sql values
         foreach ($this->tagsByMode([self::VAR_IN_SQL, self::VAR_INOUT_SQL]) as $tag => $v) {
-            $sql = str_replace($tag, self::sqlValue($v['value'], $v['type'], false), $sql);
+            $sql = str_replace($tag, self::sqlValue($v['value'], $v['type'], false, $this->current_cnx_id), $sql);
         }
 
         // stop if there's no need to create a statement
@@ -911,7 +1006,7 @@ class PDOPlusPlus
         // initial binding
         if ($this->params_already_bound === false) {
             if ( ! ($this->stmt instanceof PDOStatement)) {
-                $this->stmt = self::pdo()->prepare($sql);
+                $this->stmt = self::pdo($this->current_cnx_id)->prepare($sql);
             }
 
             // params using ->bindValue()
@@ -1010,12 +1105,14 @@ class PDOPlusPlus
     }
 
     /**
-     * @param        $value
-     * @param string $type      among: int str float double num numeric bool
-     * @param bool   $for_pdo
-     * @return mixed|array      if $for_pdo => [0 => value, 1 => pdo type] | plain escaped value
+     * @param             $value
+     * @param string      $type     among: int str float double num numeric bool
+     * @param bool        $for_pdo
+     * @param string|null $cnx_id   if null => default connection
+     * @return mixed|array          if $for_pdo => [0 => value, 1 => pdo type] | plain escaped value
+     * @throws Exception
      */
-    public static function sqlValue($value, string $type, bool $for_pdo)
+    public static function sqlValue($value, string $type, bool $for_pdo, ?string $cnx_id = null)
     {
         if ($value === null) {
             return $for_pdo ? [null, PDO::PARAM_NULL] : 'NULL';
@@ -1033,7 +1130,7 @@ class PDOPlusPlus
             if ($for_pdo) {
                 return [$v, PDO::PARAM_STR];
             } else {
-                return self::pdo()->quote($v, PDO::PARAM_STR);
+                return self::pdo($cnx_id)->quote($v, PDO::PARAM_STR);
             }
         }
     }
