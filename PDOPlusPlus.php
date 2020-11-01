@@ -432,6 +432,15 @@ class PDOPlusPlus
             private $data;
             private $in_params;
             private $mode;
+            private $locked_type;
+
+            /**
+             * @param string $type  among: int str float double num numeric bool
+             */
+            public function lockType(string $type)
+            {
+                $this->locked_type = $type;
+            }
 
             /**
              * @param array $data
@@ -462,7 +471,7 @@ class PDOPlusPlus
                 }
 
                 $tag = PDOPlusPlus::tag();
-                $this->data[$tag]      = ['mode' => $this->mode, 'value' => $value, 'type' => $type];
+                $this->data[$tag]      = ['mode' => $this->mode, 'value' => $value, 'type' => $this->locked_type ?? $type];
                 $this->in_params[$tag] = $tag;
                 return $tag;
             }
@@ -478,6 +487,15 @@ class PDOPlusPlus
         return new class($this->data, $this->in_params) {
             private $data;
             private $in_params;
+            private $locked_type;
+
+            /**
+             * @param string $type  among: int str float double num numeric bool
+             */
+            public function lockType(string $type)
+            {
+                $this->locked_type = $type;
+            }
 
             /**
              * @param array $data
@@ -497,7 +515,7 @@ class PDOPlusPlus
             public function __invoke(&$value, string $type = 'str'): string
             {
                 $tag = PDOPlusPlus::tag();
-                $this->data[$tag]      = ['mode' => 'in_by_ref', 'value' => &$value, 'type' => $type];
+                $this->data[$tag]      = ['mode' => 'in_by_ref', 'value' => &$value, 'type' => $this->locked_type ?? $type];
                 $this->in_params[$tag] = $tag;
                 return $tag;
             }
@@ -568,6 +586,15 @@ class PDOPlusPlus
             private $data;
             private $inout_params;
             private $mode;
+            private $locked_type;
+
+            /**
+             * @param string $type  among: int str float double num numeric bool
+             */
+            public function lockType(string $type)
+            {
+                $this->locked_type = $type;
+            }
 
             /**
              * @param array  $data
@@ -590,7 +617,7 @@ class PDOPlusPlus
             public function __invoke($value, string $inout_param, string $type = 'str'): string
             {
                 $tag = PDOPlusPlus::tag();
-                $this->data[$tag]         = ['mode' => $this->mode, 'value' => $value, 'type' => $type];
+                $this->data[$tag]         = ['mode' => $this->mode, 'value' => $value, 'type' => $this->locked_type ?? $type];
                 $this->inout_params[$tag] = $inout_param;
                 return $tag;
             }
@@ -606,6 +633,15 @@ class PDOPlusPlus
         return new class($this->data, $this->inout_params) {
             private $data;
             private $inout_params;
+            private $locked_type;
+
+            /**
+             * @param string $type  among: int str float double num numeric bool
+             */
+            public function lockType(string $type)
+            {
+                $this->locked_type = $type;
+            }
 
             /**
              * @param array $data
@@ -626,7 +662,7 @@ class PDOPlusPlus
             public function __invoke(&$value, string $inout_param, string $type = 'str'): string
             {
                 $tag = PDOPlusPlus::tag();
-                $this->data[$tag]         = ['mode' => 'inout_by_ref', 'value' => &$value, 'type' => $type];
+                $this->data[$tag]         = ['mode' => 'inout_by_ref', 'value' => &$value, 'type' => $this->locked_type ?? $type];
                 $this->inout_params[$tag] = $inout_param;
                 return $tag;
             }
@@ -859,16 +895,17 @@ class PDOPlusPlus
         if (empty($this->tagsByMode([self::VAR_IN_BY_VAL, self::VAR_IN_BY_REF, self::VAR_INOUT_BY_VAL, self::VAR_INOUT_BY_REF]))) {
             return $sql;
         }
+
         /**
          * @param  string $p    among: int str float double num numeric bool
          * @return int
          */
         $pdo_type = function(string $p): int {
             return [
-                    'null' => PDO::PARAM_NULL,
-                    'int'  => PDO::PARAM_INT,
-                    'bool' => PDO::PARAM_BOOL,
-                ][$p] ?? PDO::PARAM_STR;
+                'null' => PDO::PARAM_NULL,
+                'int'  => PDO::PARAM_INT,
+                'bool' => PDO::PARAM_BOOL,
+            ][$p] ?? PDO::PARAM_STR;
         };
 
         // initial binding
@@ -903,7 +940,7 @@ class PDOPlusPlus
                 $this->stmt->bindParam($tag, $v['value'], PDO::PARAM_NULL);
                 $this->last_bound_type_tags_by_ref[$tag] = PDO::PARAM_NULL;
             } elseif (($current_type !== PDO::PARAM_NULL) && ($previous_type === PDO::PARAM_NULL)) {
-                // rebind the parameter with the initial type
+                // rebind the parameter to the initial type
                 $this->stmt->bindParam($tag, $v['value'], $pdo_type($v['type']));
                 $this->last_bound_type_tags_by_ref[$tag] = $pdo_type($v['type']);
             }
