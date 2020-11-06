@@ -504,7 +504,7 @@ You have several methods that will help you to manage your SQL code flow:
 If you're familiar with the SQL transactions theory, the functions are well named and easy to understand.
 
 ### **LOCK THE TYPE OF THE INJECTED VALUE**
-Since the v3.1.1, you can once for all define and lock simultaneously the type of the variable for a every injector. 
+Since the v3.1.1, you can once for all define and lock simultaneously the type of the variable for every injector. 
 ```php
 $ppp = new PPP();
 $in  = $ppp->injectorInByVal('int');
