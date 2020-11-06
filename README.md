@@ -503,6 +503,19 @@ You have several methods that will help you to manage your SQL code flow:
 
 If you're familiar with the SQL transactions theory, the functions are well named and easy to understand.
 
+### **LOCK THE TYPE OF THE INJECTED VALUE**
+Since the v3.1.0, you can once for all define and lock simultaneously the type of the variable for a every injector. 
+```php
+$ppp = new PPP();
+$in  = $ppp->injectorInByVal('int');
+// now all injected values using $in() are considered by the engine as integer even if you try to redefine it on the fly
+$var = $in('123', 'int');
+// is equivalent to:  
+$var = $in('123');  
+// and in that example 'str' is ignored: 
+$var = $in('123', 'str');
+```
+
 ### **ERRORS**
 To avoid plenty of `try { } catch { }` blocks, I introduced a mechanism that will factorize this part of code.<br>
 As `PDOPlusPlus` can throw an `Exception` when a statement fails, you should always intercept that possible issue and
