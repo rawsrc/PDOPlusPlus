@@ -495,20 +495,22 @@ class PDOPlusPlus
     //region INJECTORS
     /**
      * Injector for values using sql direct escaping
+     * @param string|null $data_type Define and lock the type of the value among: int str float double num numeric bool
      * @return object
      */
-    public function injectorInSql(): object
+    public function injectorInSql(?string $data_type = null): object
     {
-        return $this->injectorInSqlOrByVal(self::VAR_IN_SQL);
+        return $this->injectorInSqlOrByVal(self::VAR_IN_SQL, $data_type);
     }
 
     /**
      * Injector for values using the $pdo->bindValue() mechanism
+     * @param string|null $data_type Define and lock the type of the value among: int str float double num numeric bool
      * @return object
      */
-    public function injectorInByVal(): object
+    public function injectorInByVal(?string $data_type = null): object
     {
-        return $this->injectorInSqlOrByVal(self::VAR_IN_BY_VAL);
+        return $this->injectorInSqlOrByVal(self::VAR_IN_BY_VAL, $data_type);
     }
 
     /**
@@ -516,12 +518,13 @@ class PDOPlusPlus
      * Mode in_sql    => the value is directly escaped in the sql string
      * Mode in_by_val => the value is bound using the PDO mechanism ->bindValue()
      *
-     * @param string $mode  in_sql|in_by_val
+     * @param string      $mode      in_sql|in_by_val
+     * @param string|null $data_type Define and lock the type of the value among: int str float double num numeric bool
      * @return object
      */
-    protected function injectorInSqlOrByVal(string $mode): object
+    protected function injectorInSqlOrByVal(string $mode, ?string $data_type = null): object
     {
-        return new class($this->data, $this->in_params, $mode) {
+        return new class($this->data, $this->in_params, $mode, $data_type) {
             private $data;
             private $in_params;
             private $mode;
@@ -536,15 +539,17 @@ class PDOPlusPlus
             }
 
             /**
-             * @param array $data
-             * @param array $in_params
-             * @param string $mode
+             * @param array       $data
+             * @param array       $in_params
+             * @param string      $mode
+             * @param string|null $data_type
              */
-            public function __construct(array &$data, array &$in_params, string $mode)
+            public function __construct(array &$data, array &$in_params, string $mode, ?string $data_type = null)
             {
-                $this->data      =& $data;
-                $this->in_params =& $in_params;
-                $this->mode      =  $mode;
+                $this->data        =& $data;
+                $this->in_params   =& $in_params;
+                $this->mode        =  $mode;
+                $this->locked_type =  $data_type;
             }
 
             /**
@@ -573,11 +578,12 @@ class PDOPlusPlus
 
     /**
      * Injector for values using the $pdo->bindParam() mechanism
+     * @param string|null $data_type Define and lock the type of the value among: int str float double num numeric bool
      * @return object
      */
-    public function injectorInByRef(): object
+    public function injectorInByRef(?string $data_type = null): object
     {
-        return new class($this->data, $this->in_params) {
+        return new class($this->data, $this->in_params, $data_type) {
             private $data;
             private $in_params;
             private $locked_type;
@@ -591,13 +597,15 @@ class PDOPlusPlus
             }
 
             /**
-             * @param array $data
-             * @param array $in_params
+             * @param array       $data
+             * @param array       $in_params
+             * @param string|null $data_type
              */
-            public function __construct(array &$data, array &$in_params)
+            public function __construct(array &$data, array &$in_params, ?string $data_type = null)
             {
-                $this->data      =& $data;
-                $this->in_params =& $in_params;
+                $this->data        =& $data;
+                $this->in_params   =& $in_params;
+                $this->locked_type = $data_type;
             }
 
             /**
@@ -626,8 +634,8 @@ class PDOPlusPlus
             private $out_params;
 
             /**
-             * @param array $data
-             * @param array $out_params
+             * @param array       $data
+             * @param array       $out_params
              */
             public function __construct(array &$data, array &$out_params)
             {
@@ -650,19 +658,21 @@ class PDOPlusPlus
     }
 
     /**
+     * @param string|null $data_type Define and lock the type of the value among: int str float double num numeric bool
      * @return object
      */
-    public function injectorInOutSql(): object
+    public function injectorInOutSql(?string $data_type = null): object
     {
-        return $this->injectorInOutSqlOrByVal(self::VAR_INOUT_SQL);
+        return $this->injectorInOutSqlOrByVal(self::VAR_INOUT_SQL, $data_type);
     }
 
     /**
+     * @param string|null $data_type Define and lock the type of the value among: int str float double num numeric bool
      * @return object
      */
-    public function injectorInOutByVal(): object
+    public function injectorInOutByVal(?string $data_type = null): object
     {
-        return $this->injectorInOutSqlOrByVal(self::VAR_INOUT_BY_VAL);
+        return $this->injectorInOutSqlOrByVal(self::VAR_INOUT_BY_VAL, $data_type);
     }
 
     /**
@@ -670,12 +680,13 @@ class PDOPlusPlus
      * Mode inout_sql    => the value is directly escaped in the sql string
      * Mode inout_by_val => the value is bound using the PDO mechanism ->bindValue()
      *
-     * @param string $mode  inout_sql|inout_by_val
+     * @param string      $mode inout_sql|inout_by_val
+     * @param string|null $data_type Define and lock the type of the value among: int str float double num numeric bool
      * @return object
      */
-    protected function injectorInOutSqlOrByVal(string $mode): object
+    protected function injectorInOutSqlOrByVal(string $mode, ?string $data_type = null): object
     {
-        return new class($this->data, $this->inout_params, $mode) {
+        return new class($this->data, $this->inout_params, $mode, $data_type) {
             private $data;
             private $inout_params;
             private $mode;
@@ -690,15 +701,17 @@ class PDOPlusPlus
             }
 
             /**
-             * @param array  $data
-             * @param array  $inout_params
-             * @param string $mode
+             * @param array       $data
+             * @param array       $inout_params
+             * @param string      $mode
+             * @param string|null $data_type
              */
-            public function __construct(array &$data, array &$inout_params, string $mode)
+            public function __construct(array &$data, array &$inout_params, string $mode, ?string $data_type = null)
             {
                 $this->data         =& $data;
                 $this->inout_params =& $inout_params;
                 $this->mode         =  $mode;
+                $this->locked_type  =  $data_type;
             }
 
             /**
@@ -719,11 +732,12 @@ class PDOPlusPlus
 
     /**
      * Injector for by ref params having IN OUT attribute
+     * @param string|null $data_type Define and lock the type of the value among: int str float double num numeric bool
      * @return object
      */
-    public function injectorInOutByRef(): object
+    public function injectorInOutByRef(?string $data_type = null): object
     {
-        return new class($this->data, $this->inout_params) {
+        return new class($this->data, $this->inout_params, $data_type) {
             private $data;
             private $inout_params;
             private $locked_type;
@@ -737,13 +751,15 @@ class PDOPlusPlus
             }
 
             /**
-             * @param array $data
-             * @param array $inout_params
+             * @param array       $data
+             * @param array       $inout_params
+             * @param string|null $data_type
              */
-            public function __construct(array &$data, array &$inout_params)
+            public function __construct(array &$data, array &$inout_params, ?string $data_type = null)
             {
                 $this->data         =& $data;
                 $this->inout_params =& $inout_params;
+                $this->locked_type  =  $data_type;
             }
 
             /**
