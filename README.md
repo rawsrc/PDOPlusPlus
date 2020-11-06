@@ -172,6 +172,7 @@ PDOPlusPlus::addCnxParams('root', [
     'port'     => '3306',
     'timeout'  => '5'  
 ], false);
+
 PDOPlusPlus::addCnxParams('user', [
     'scheme'   => 'mysql', 
     'host'     => 'localhost', 
@@ -180,11 +181,10 @@ PDOPlusPlus::addCnxParams('user', [
     'pwd'      => '',
     'port'     => '3306',
     'timeout'  => '5'  
-], true);
+], true);   // true => default connection
 ```
 You can now define the right connection for the SQL you have to execute on the server.
-`$ppp = new PDOPlusPlus('root');` or<br>
-`$ppp = new PDOPlusPlus('user');` which is equivalent to `$ppp = new PDOPlusPlus();`
+`$ppp = new PDOPlusPlus('root');` or `$ppp = new PDOPlusPlus('user');` which is equivalent to `$ppp = new PDOPlusPlus();`
 
 For the course, I will use a very simple database of one table :
 ```sql
