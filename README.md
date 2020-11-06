@@ -156,7 +156,7 @@ define('DB_DSN_PARAMS', []);
 Since v3.1.0, you can also open as many database connections as you want using the same `PDOPlusPlus` instance.<br>
 See `PDOPlusPlus::addCnxParams(string $cnx_id, array $params, bool $is_default = true)`<br> 
 First, you have to create a name for the connection (`$cnx_id`), then tell the engine how to connect (`$params`), and finally flag to true (`$is_default`) if needed. 
-Then, each time you will create a new instance of `PDOPlusPlus`, you'd able to select the right connection to use for you work.<br> 
+Then, each time you will create a new instance of `PDOPlusPlus`, you'd able to select the right connection to use.<br> 
 If you omit the parameter then the default connection will be used.
 
 It is also possible to change the default connection's id once defined, see : `PDOPlusPlus::changeDefaultConnectionTo(string $cnx_id)`<br>
@@ -504,7 +504,7 @@ You have several methods that will help you to manage your SQL code flow:
 If you're familiar with the SQL transactions theory, the functions are well named and easy to understand.
 
 ### **LOCK THE TYPE OF THE INJECTED VALUE**
-Since the v3.1.0, you can once for all define and lock simultaneously the type of the variable for a every injector. 
+Since the v3.1.1, you can once for all define and lock simultaneously the type of the variable for a every injector. 
 ```php
 $ppp = new PPP();
 $in  = $ppp->injectorInByVal('int');
@@ -514,6 +514,12 @@ $var = $in('123', 'int');
 $var = $in('123');  
 // and in that example 'str' is ignored: 
 $var = $in('123', 'str');
+```
+You can also define and lock the type of an injector after creating it:
+```php
+$ppp = new PPP();
+$in  = $ppp->injectorInByVal();
+$in->lockType('int');
 ```
 
 ### **ERRORS**
