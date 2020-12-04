@@ -806,11 +806,26 @@ class PDOPlusPlus
     }
 
     /**
+     * @param mixed $sql
+     * @return array|null
+     * @throws Exception
+     */
+    public function select($sql): ?array
+    {
+        $this->createStmt($sql, []);
+        if ($this->stmt instanceof PDOStatement) {
+            return $this->stmt->fetchAll(PDO::FETCH_ASSOC);
+        } else {
+            return null;
+        }
+    }
+
+    /**
      * @param  mixed $sql
      * @return PDOStatement|null
      * @throws Exception
      */
-    public function select($sql): ?PDOStatement
+    public function selectStmt($sql): ?PDOStatement
     {
         return $this->createStmt($sql, []);
     }
@@ -821,7 +836,7 @@ class PDOPlusPlus
      * @return PDOStatement|null
      * @throws Exception
      */
-    public function selectAsScrollableCursor($sql, array $driver_options = []): ?PDOStatement
+    public function selectStmtAsScrollableCursor($sql, array $driver_options = []): ?PDOStatement
     {
         $driver_options = [PDO::ATTR_CURSOR => PDO::CURSOR_SCROLL] + $driver_options;
         return $this->createStmt($sql, $driver_options);
