@@ -807,19 +807,42 @@ class PDOPlusPlus
 
     /**
      * @param  mixed $sql
-     * @return array|null
+     * @return PDOStatement|null
      * @throws Exception
      */
-    public function select($sql): ?array
+    public function select($sql): ?PDOStatement
+    {
+        return $this->createStmt($sql, []);
+    }
+
+    /**
+     * @param  mixed $sql
+     * @param  array $driver_options
+     * @return PDOStatement|null
+     * @throws Exception
+     */
+    public function selectAsScrollableCursor($sql, array $driver_options = []): ?PDOStatement
+    {
+        $driver_options = [PDO::ATTR_CURSOR => PDO::CURSOR_SCROLL] + $driver_options;
+        return $this->createStmt($sql, $driver_options);
+    }
+
+    /**
+     * @param       $sql
+     * @param array $prepare_options
+     * @return false|PDOStatement|null
+     * @throws Exception
+     */
+    private function createStmt($sql, array $prepare_options): ?PDOStatement
     {
         try {
-            $result = $this->builtPrepareAndAttachValuesOrParams($sql);
+            $result = $this->builtPrepareAndAttachValuesOrParams($sql, $prepare_options);
             if ($result === true) {
                 $this->stmt->execute();
             } else {
                 $this->stmt = self::pdo($this->current_cnx_id)->query($result);
             }
-            return $this->stmt->fetchAll();
+            return $this->stmt;
         } catch (Exception $e) {
             $this->exceptionInterceptor($e, $sql, 'select');
             if (isset(static::$exception_wrapper)) {
@@ -988,9 +1011,11 @@ class PDOPlusPlus
 
     /**
      * @param string $sql
+     * @param array  $prepare_optionss
      * @return true|string  true if the statement has been prepared or string for the plain escaped sql
+     * @throws Exception
      */
-    private function builtPrepareAndAttachValuesOrParams(string $sql)
+    private function builtPrepareAndAttachValuesOrParams(string $sql, array $prepare_options = [])
     {
         // replace tags by the out param value
         foreach ($this->tagsByMode([self::VAR_OUT]) as $tag => $v) {
@@ -1022,7 +1047,7 @@ class PDOPlusPlus
         // initial binding
         if ($this->params_already_bound === false) {
             if ( ! ($this->stmt instanceof PDOStatement)) {
-                $this->stmt = self::pdo($this->current_cnx_id)->prepare($sql);
+                $this->stmt = self::pdo($this->current_cnx_id)->prepare($sql, $prepare_options);
             }
 
             // params using ->bindValue()
