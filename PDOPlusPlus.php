@@ -225,7 +225,7 @@ class PDOPlusPlus
             $params = static::$cnx_params[$cnx_id];
             static::$pdo[$cnx_id] = self::connect(
                 $params['scheme'], $params['host'], $params['database'], $params['user'], $params['pwd'],
-                $params['port'], $params['timeout'], $params['pdo_params'] ?? [], $params['dsn_params'] ?? []
+                $params['port'], $params['timeout'] ?? '5', $params['pdo_params'] ?? [], $params['dsn_params'] ?? []
             );
             return static::$pdo[$cnx_id];
         }
