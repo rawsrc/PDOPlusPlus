@@ -4,7 +4,7 @@
 
 ## **A PHP full object PDO Wrapper in one class**
 
-`PDOPlusPlus` (alias `PPP`) is **a one single class PDO Wrapper for PHP** with a
+`PDOPlusPlus` (alias `PPP`) is **a single class PDO Wrapper for PHP** with a
  revolutionary fluid SQL syntax. 
 You do not have anymore to use PDO in classical way, you can completely omit the notions of 
 `prepare()`, `bindValue()`, `bindParam()`. The usage of these mechanisms is now hidden by `PDOPlusPlus`. 
@@ -261,10 +261,8 @@ INSERT INTO t_video (video_title, video_support, video_multilingual, video_chapt
      VALUES (:XMEDem6153, :oASqvP7440, :mbfaTY4236, :FJzRWx7446, :FVHvqL4843, :tcCvZo8956, :JRtazM4176);
 ```
 Let's truncate the table and then add the whole list of films at once.<br>
-This time, I will use a `PDOStatement` based on references (`->bindParam()`) as there are many iterations to do.
-
-Please note, to pass the references to the `PDOPlusPlus` instance, you **MUST** use a specific reference injector
-returned by `->injectorInByRef();`. Otherwise it will not work.
+This time, I will use a `PDOStatement` based on references (`->bindParam()`) as there are many iterations to do. 
+I will use the injector returned by `->injectorInByRef();`. 
 ```php
 include 'PDOPlusPlus.php';
 $ppp = new PPP();

@@ -1034,12 +1034,12 @@ class PDOPlusPlus
     {
         // replace tags by the out param value
         foreach ($this->tagsByMode([self::VAR_OUT]) as $tag => $v) {
-            $sql = str_replace($tag, $v['value'], $sql);
+            $sql = str_replace($tag, (string)$v['value'], $sql);
         }
 
         // replace tags by plain sql values
         foreach ($this->tagsByMode([self::VAR_IN_SQL, self::VAR_INOUT_SQL]) as $tag => $v) {
-            $sql = str_replace($tag, self::sqlValue($v['value'], $v['type'], false, $this->current_cnx_id), $sql);
+            $sql = str_replace($tag, (string)self::sqlValue($v['value'], $v['type'], false, $this->current_cnx_id), $sql);
         }
 
         // stop if there's no need to create a statement
@@ -1079,7 +1079,7 @@ class PDOPlusPlus
             $this->params_already_bound = true;
         }
 
-        // explicit casting fot values by ref and rebinding for null values
+        // explicit cast for values by ref and rebinding for null values
         $data_by_ref = $this->tagsByMode([self::VAR_IN_BY_REF, self::VAR_INOUT_BY_REF]);
         foreach ($data_by_ref as $tag => &$v) {
             $current = self::sqlValue($v['value'], $v['type'], true);
@@ -1096,7 +1096,7 @@ class PDOPlusPlus
                 $this->last_bound_type_tags_by_ref[$tag] = $pdo_type($v['type']);
             }
 
-            // explicit casting for var by ref
+            // explicit cast for var by ref
             if ($v['value'] !== null) {
                 $v['value'] = $current[0];
             }
