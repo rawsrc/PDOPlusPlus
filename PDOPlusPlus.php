@@ -69,7 +69,7 @@ class PDOPlusPlus
     /**
      * @var string|null
      */
-    protected string $current_cnx_id;
+    protected string|null $current_cnx_id;
     /**
      * List all generated tags during the current session
      * @var array [tag]
@@ -99,7 +99,7 @@ class PDOPlusPlus
     protected bool $debug;
     protected bool $params_already_bound = false;
     protected bool $is_transactional = false;
-    protected PDOStatement $stmt;
+    protected PDOStatement|null $stmt;
     /**
      * @var array used by nested transactions
      */
@@ -177,7 +177,7 @@ class PDOPlusPlus
     /**
      * @param string|null $cnx_id null => default connection
      * @return PDO
-     * @throws BadMethodCallException
+     * @throws BadMethodCallException|Exception
      */
     public static function pdo(?string $cnx_id = null): PDO
     {
@@ -254,22 +254,23 @@ class PDOPlusPlus
     }
 
     //region DATABASE CONNECTION
+
     /**
      * Default parameters for PDO are :
      *      PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
      *      PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
      *      PDO::ATTR_EMULATE_PREPARES   => false
      *
-     * @param string $scheme     Ex: mysql pgsql...
-     * @param string $host       server host
-     * @param string $database   database name
-     * @param string $user       user name
-     * @param string $pwd        password
-     * @param string $port       port number
+     * @param string $scheme Ex: mysql pgsql...
+     * @param string $host server host
+     * @param string $database database name
+     * @param string $user user name
+     * @param string $pwd password
+     * @param string $port port number
      * @param string $timeout
      * @param array $pdo_params others parameters for PDO [key => value]
      * @param array $dsn_params other parameter for the dsn string [string]
-     * @throws Exception
+     * @return PDO
      */
     protected static function connect(
         string $scheme,
@@ -281,7 +282,7 @@ class PDOPlusPlus
         string $timeout,
         array $pdo_params = [],
         array $dsn_params = [],
-    ) {
+    ): PDO {
         $dsn = "{$scheme}:host={$host};dbname={$database};";
 
         if ((int)($port)) {
@@ -320,7 +321,7 @@ class PDOPlusPlus
      * @param array $args
      * @return mixed
      */
-    public function __invoke(...$args)
+    public function __invoke(...$args): mixed
     {
         return $this->injectorInSqlOrByVal(self::VAR_IN_SQL)(...$args);
     }
@@ -568,7 +569,7 @@ class PDOPlusPlus
              * @return string
              * @throws TypeError
              */
-            public function __invoke($value, string $type = 'str'): string
+            public function __invoke(mixed $value, string $type = 'str'): string
             {
                 $is_scalar = function(mixed $p): bool {
                     return ($p === null) || is_scalar($p) || (is_object($p) && method_exists($p, '__toString'));
@@ -629,7 +630,7 @@ class PDOPlusPlus
              * @param string $type among: int str float double num numeric bool
              * @return string
              */
-            public function __invoke(&$value, string $type = 'str'): string
+            public function __invoke(mixed &$value, string $type = 'str'): string
             {
                 $tag = PDOPlusPlus::tag();
                 $this->data[$tag] = [
@@ -795,7 +796,7 @@ class PDOPlusPlus
              * @param string $type among: int str float double num numeric bool
              * @return string
              */
-            public function __invoke(&$value, string $inout_param, string $type = 'str'): string
+            public function __invoke(mixed &$value, string $inout_param, string $type = 'str'): string
             {
                 $tag = PDOPlusPlus::tag();
                 $this->data[$tag] = [
@@ -843,7 +844,7 @@ class PDOPlusPlus
      * @return array|null
      * @throws Exception
      */
-    public function select($sql): ?array
+    public function select(string $sql): ?array
     {
         $this->createStmt($sql, []);
         if ($this->stmt instanceof PDOStatement) {
@@ -854,22 +855,22 @@ class PDOPlusPlus
     }
 
     /**
-     * @param mixed $sql
+     * @param string $sql
      * @return PDOStatement|null
      * @throws Exception
      */
-    public function selectStmt($sql): ?PDOStatement
+    public function selectStmt(string $sql): ?PDOStatement
     {
         return $this->createStmt($sql, []);
     }
 
     /**
-     * @param mixed $sql
+     * @param string $sql
      * @param array $driver_options
      * @return PDOStatement|null
      * @throws Exception
      */
-    public function selectStmtAsScrollableCursor($sql, array $driver_options = []): ?PDOStatement
+    public function selectStmtAsScrollableCursor(string $sql, array $driver_options = []): ?PDOStatement
     {
         $driver_options = [PDO::ATTR_CURSOR => PDO::CURSOR_SCROLL] + $driver_options;
 
@@ -877,12 +878,12 @@ class PDOPlusPlus
     }
 
     /**
-     * @param $sql
+     * @param string $sql
      * @param array $prepare_options
      * @return false|PDOStatement|null
      * @throws Exception
      */
-    private function createStmt($sql, array $prepare_options): false|PDOStatement|null
+    private function createStmt(string $sql, array $prepare_options): false|PDOStatement|null
     {
         try {
             $result = $this->builtPrepareAndAttachValuesOrParams($sql, $prepare_options);
@@ -955,7 +956,7 @@ class PDOPlusPlus
      * @return mixed
      * @throws Exception
      */
-    public function call(string $sql, bool $is_query)
+    public function call(string $sql, bool $is_query): mixed
     {
         try {
             $pdo = self::pdo($this->current_cnx_id);
@@ -1069,11 +1070,11 @@ class PDOPlusPlus
 
     /**
      * @param string $sql
-     * @param array $prepare_optionss
-     * @return true|string  true if the statement has been prepared or string for the plain escaped sql
+     * @param array $prepare_options
+     * @return bool|string  true if the statement has been prepared or string for the plain escaped sql
      * @throws Exception
      */
-    private function builtPrepareAndAttachValuesOrParams(string $sql, array $prepare_options = [])
+    private function builtPrepareAndAttachValuesOrParams(string $sql, array $prepare_options = []): string|bool
     {
         // replace tags by the out param value
         foreach ($this->tagsByMode([self::VAR_OUT]) as $tag => $v) {
@@ -1221,10 +1222,10 @@ class PDOPlusPlus
      * @param string $type among: int str float double num numeric bool
      * @param bool $for_pdo
      * @param string|null $cnx_id if null => default connection
-     * @return mixed|array if $for_pdo => [0 => value, 1 => pdo type] | plain escaped value
+     * @return array|bool|int|string if $for_pdo => [0 => value, 1 => pdo type] | plain escaped value
      * @throws Exception
      */
-    public static function sqlValue($value, string $type, bool $for_pdo, ?string $cnx_id = null)
+    public static function sqlValue($value, string $type, bool $for_pdo, ?string $cnx_id = null): array|bool|int|string
     {
         if ($value === null) {
             return $for_pdo ? [null, PDO::PARAM_NULL] : 'NULL';
