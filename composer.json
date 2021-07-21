@@ -12,13 +12,8 @@
     }
   ],
   "require": {
-    "php": ">=7.1",
+    "php": ">=8.0",
     "ext-pdo": "*"
-  },
-  "autoload": {
-    "psr-4": {
-      "rawsrc\\PDOPlusPlus\\": "PDOPlusPlus/"
-    }
   },
   "minimum-stability": "stable"
 }
