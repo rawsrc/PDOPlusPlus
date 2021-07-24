@@ -351,7 +351,7 @@ class PDOPlusPlus
             // for nested transaction create internally a save point
             // to be able to rollback only the current transaction
             // as PDO only rollback all the transactions
-            $save_point = self::tag('');
+            $save_point = self::getTag('');
             $this->savePoint($save_point);
         } else {
             $this->execTransaction(
@@ -579,7 +579,7 @@ class PDOPlusPlus
                     throw new TypeError('Null or scalar value expected or class with __toString() implemented');
                 }
 
-                $tag = PDOPlusPlus::tag();
+                $tag = PDOPlusPlus::getTag();
                 $this->data[$tag] = [
                     'mode' => $this->mode,
                     'value' => $value,
@@ -632,7 +632,7 @@ class PDOPlusPlus
              */
             public function __invoke(mixed &$value, string $type = 'str'): string
             {
-                $tag = PDOPlusPlus::tag();
+                $tag = PDOPlusPlus::getTag();
                 $this->data[$tag] = [
                     'mode' => 'in_by_ref',
                     'value' => &$value,
@@ -671,7 +671,7 @@ class PDOPlusPlus
              */
             public function __invoke(string $out_param): string
             {
-                $tag = PDOPlusPlus::tag();
+                $tag = PDOPlusPlus::getTag();
                 $this->data[$tag] = ['mode' => 'out', 'value' => $out_param];
                 $this->out_params[$tag] = $out_param;
 
@@ -745,7 +745,7 @@ class PDOPlusPlus
              */
             public function __invoke(mixed $value, string $inout_param, string $type = 'str'): string
             {
-                $tag = PDOPlusPlus::tag();
+                $tag = PDOPlusPlus::getTag();
                 $this->data[$tag] = [
                     'mode' => $this->mode,
                     'value' => $value,
@@ -798,7 +798,7 @@ class PDOPlusPlus
              */
             public function __invoke(mixed &$value, string $inout_param, string $type = 'str'): string
             {
-                $tag = PDOPlusPlus::tag();
+                $tag = PDOPlusPlus::getTag();
                 $this->data[$tag] = [
                     'mode' => 'inout_by_ref',
                     'value' => &$value,
@@ -1190,7 +1190,7 @@ class PDOPlusPlus
      * @param string $prepend
      * @return string
      */
-    public static function tag(string $prepend = ':'): string
+    public static function getTag(string $prepend = ':'): string
     {
         do {
             $tag = $prepend.substr(str_shuffle(self::ALPHA), 0, 7).mt_rand(10000, 99999);
@@ -1207,11 +1207,11 @@ class PDOPlusPlus
      * @param  array $keys
      * @return array        [key => tag]
      */
-    public static function tags(array $keys): array
+    public static function getTags(array $keys): array
     {
         $tags = [];
         for ($i = 0, $nb = count($keys) ; $i < $nb ; ++$i) {
-            $tags[] = self::tag();
+            $tags[] = self::getTag();
         }
 
         return array_combine($keys, $tags);
