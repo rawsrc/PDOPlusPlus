@@ -63,13 +63,13 @@ class PDOPlusPlus
      */
     protected static array $cnx_params = [];
     /**
-     * @var string
+     * @var string|null
      */
-    protected static string $default_cnx_id;
+    protected static string|null $default_cnx_id = null;
     /**
      * @var string|null
      */
-    protected string|null $current_cnx_id;
+    protected string|null $current_cnx_id = null;
     /**
      * List all generated tags during the current session
      * @var array [tag]
@@ -77,7 +77,7 @@ class PDOPlusPlus
     protected static array $tags = [];
     /**
      * User data injected in the sql string
-     * @var array [tag => [value => user value, type => user type, mode => const VAR_xxx]
+     * @var array [tag => [value => user value, type => user type, mode => one const VAR_xxx]
      */
     protected array $data = [];
     /**
@@ -87,18 +87,33 @@ class PDOPlusPlus
     protected array $in_params = [];
     /**
      * Used only for OUT Params in stored procedure
+     * @var array [tag]
      */
-    protected array $out_params = []; // array of tags: out params
+    protected array $sp_out_params = [];
     /**
      * Used only for OUT and IN_OUT Params in stored procedure
      * @var array [tag]
      */
-    protected array $inout_params = [];
-
+    protected array $sp_inout_params = [];
+    /**
+     * @var array
+     */
     protected array $last_bound_type_tags_by_ref = [];
+    /**
+     * @var bool
+     */
     protected bool $debug;
+    /**
+     * @var bool
+     */
     protected bool $params_already_bound = false;
+    /**
+     * @var bool
+     */
     protected bool $is_transactional = false;
+    /**
+     * @var PDOStatement|null
+     */
     protected PDOStatement|null $stmt;
     /**
      * @var array used by nested transactions
@@ -120,7 +135,7 @@ class PDOPlusPlus
      */
     protected function hasInOutParams(): bool
     {
-        return ! empty($this->inout_params);
+        return ! empty($this->sp_inout_params);
     }
 
     /**
@@ -128,15 +143,15 @@ class PDOPlusPlus
      */
     protected function hasOutParams(): bool
     {
-        return ! (empty($this->out_params) && empty($this->inout_params));
+        return ! (empty($this->sp_out_params) && empty($this->sp_inout_params));
     }
 
     /**
-     * @return array
+     * @return array [tag]
      */
     protected function outParams(): array
     {
-        return array_merge($this->out_params, $this->inout_params);
+        return array_merge($this->sp_out_params, $this->sp_inout_params);
     }
 
     /**
@@ -167,6 +182,7 @@ class PDOPlusPlus
 
     /**
      * Return the result of the exception wrapper
+     *
      * @return mixed
      */
     public function error(): mixed
@@ -179,7 +195,7 @@ class PDOPlusPlus
      * @return PDO
      * @throws BadMethodCallException|Exception
      */
-    public static function pdo(?string $cnx_id = null): PDO
+    public static function getPdo(?string $cnx_id = null): PDO
     {
         $cnx_id ??= static::$default_cnx_id ?? null;
 
@@ -404,7 +420,7 @@ class PDOPlusPlus
      *
      * @throws Exception
      */
-    public function rollbackAll()
+    public function rollbackAll(): void
     {
         $this->save_points = [];
         $this->rollback();
@@ -416,7 +432,7 @@ class PDOPlusPlus
      * @param string $point_name
      * @throws Exception
      */
-    public function savePoint(string $point_name)
+    public function savePoint(string $point_name): void
     {
         if ($this->is_transactional) {
             $this->execTransaction(
@@ -432,7 +448,7 @@ class PDOPlusPlus
      * @param string $point_name
      * @throws Exception
      */
-    public function rollbackTo(string $point_name)
+    public function rollbackTo(string $point_name): void
     {
         if ($this->is_transactional) {
             $this->execTransaction(
@@ -449,7 +465,7 @@ class PDOPlusPlus
      * @param string $point_name
      * @throws Exception
      */
-    public function release(string $point_name)
+    public function release(string $point_name): void
     {
         if ($this->is_transactional && in_array($point_name, $this->save_points, true)) {
             $this->execTransaction(
@@ -465,7 +481,7 @@ class PDOPlusPlus
     /**
      * @throws Exception
      */
-    public function releaseAll()
+    public function releaseAll(): void
     {
         foreach ($this->save_points as $point) {
             $this->release($point);
@@ -483,7 +499,7 @@ class PDOPlusPlus
     private function execTransaction(string $sql, string $func_name, ?bool $final_transaction_status)
     {
         try {
-            self::pdo($this->current_cnx_id)->exec($sql);
+            self::getPdo($this->current_cnx_id)->exec($sql);
             if ($final_transaction_status !== null) {
                 $this->is_transactional = $final_transaction_status;
             }
@@ -571,9 +587,7 @@ class PDOPlusPlus
              */
             public function __invoke(mixed $value, string $type = 'str'): string
             {
-                $is_scalar = function(mixed $p): bool {
-                    return ($p === null) || is_scalar($p) || (is_object($p) && method_exists($p, '__toString'));
-                };
+                $is_scalar = fn(mixed $p): bool => ($p === null) || is_scalar($p) || (is_object($p) && method_exists($p, '__toString'));
 
                 if ( ! $is_scalar($value)) {
                     throw new TypeError('Null or scalar value expected or class with __toString() implemented');
@@ -651,7 +665,7 @@ class PDOPlusPlus
      */
     public function injectorOut(): object
     {
-        return new class($this->data, $this->out_params) {
+        return new class($this->data, $this->sp_out_params) {
             private array $data;
             private array $out_params;
 
@@ -709,7 +723,7 @@ class PDOPlusPlus
      */
     protected function injectorInOutSqlOrByVal(string $mode, ?string $data_type = null): object
     {
-        return new class($this->data, $this->inout_params, $mode, $data_type) {
+        return new class($this->data, $this->sp_inout_params, $mode, $data_type) {
             private array $data;
             private array $inout_params;
             private string $mode;
@@ -765,7 +779,7 @@ class PDOPlusPlus
      */
     public function injectorInOutByRef(?string $data_type = null): object
     {
-        return new class($this->data, $this->inout_params, $data_type) {
+        return new class($this->data, $this->sp_inout_params, $data_type) {
             private array $data;
             private array $inout_params;
             private ?string $locked_type;
@@ -821,7 +835,7 @@ class PDOPlusPlus
     {
         try {
             $result = $this->builtPrepareAndAttachValuesOrParams($sql);
-            $pdo = self::pdo($this->current_cnx_id);
+            $pdo = self::getPdo($this->current_cnx_id);
             if ($result === true) {
                 $this->stmt->execute();
             } else {
@@ -890,7 +904,7 @@ class PDOPlusPlus
             if ($result === true) {
                 $this->stmt->execute();
             } else {
-                $this->stmt = self::pdo($this->current_cnx_id)->query($result);
+                $this->stmt = self::getPdo($this->current_cnx_id)->query($result);
             }
 
             return $this->stmt;
@@ -938,7 +952,7 @@ class PDOPlusPlus
 
                 return $this->stmt->rowCount();
             } else {
-                return self::pdo($this->current_cnx_id)->exec($result);
+                return self::getPdo($this->current_cnx_id)->exec($result);
             }
         } catch (Exception $e) {
             $this->exceptionInterceptor($e, $sql, 'execute');
@@ -959,12 +973,12 @@ class PDOPlusPlus
     public function call(string $sql, bool $is_query): mixed
     {
         try {
-            $pdo = self::pdo($this->current_cnx_id);
+            $pdo = self::getPdo($this->current_cnx_id);
 
             $inject_io_values = function() use ($pdo) {
                 if ($this->hasInOutParams()) {
                     $sql = [];
-                    foreach ($this->inout_params as $tag => $io) {
+                    foreach ($this->sp_inout_params as $tag => $io) {
                         // Injecting one by one io_params's value using SQL syntax : "SET @io_param = value"
                         $sql[] = "SET {$io} = ".self::sqlValue(
                             value: $this->data[$tag]['value'],
@@ -1036,7 +1050,7 @@ class PDOPlusPlus
         if ($this->hasOutParams()) {
             try {
                 $sql = 'SELECT '.implode(', ', $this->outParams());
-                $stmt = self::pdo($this->current_cnx_id)->query($sql);
+                $stmt = self::getPdo($this->current_cnx_id)->query($sql);
 
                 return $stmt->fetchAll()[0];
             } catch (Exception $e) {
@@ -1106,7 +1120,7 @@ class PDOPlusPlus
         // initial binding
         if ($this->params_already_bound === false) {
             if ( ! ($this->stmt instanceof PDOStatement)) {
-                $this->stmt = self::pdo($this->current_cnx_id)->prepare($sql, $prepare_options);
+                $this->stmt = self::getPdo($this->current_cnx_id)->prepare($sql, $prepare_options);
             }
 
             // params using ->bindValue()
@@ -1155,6 +1169,8 @@ class PDOPlusPlus
     public function reset(): void
     {
         $this->data = [];
+        $this->sp_out_params = [];
+        $this->sp_inout_params = [];
         $this->params_already_bound = false;
         $this->last_bound_type_tags_by_ref = [];
         $this->stmt = null;
@@ -1165,7 +1181,7 @@ class PDOPlusPlus
      * @param string $sql
      * @param string $func_name
      */
-    private function exceptionInterceptor(Exception $e, string $sql, string $func_name)
+    private function exceptionInterceptor(Exception $e, string $sql, string $func_name): void
     {
         if ($this->debug) {
             var_dump($sql);
@@ -1176,7 +1192,7 @@ class PDOPlusPlus
         }
     }
 
-    public function closeCursor()
+    public function closeCursor(): void
     {
         if (isset($this->stmt)) {
             $this->stmt->closeCursor();
@@ -1246,7 +1262,7 @@ class PDOPlusPlus
             if ($for_pdo) {
                 return [$v, PDO::PARAM_STR];
             } else {
-                return self::pdo($cnx_id)->quote($v, PDO::PARAM_STR);
+                return self::getPdo($cnx_id)->quote($v, PDO::PARAM_STR);
             }
         }
     }
