@@ -84,7 +84,7 @@ class PDOPlusPlus
     protected static array $tags = [];
     /**
      * User data injected in the sql string
-     * @var array [tag => [value => user value, type => user type, mode => one const VAR_xxx]
+     * @var array [tag => [value => user value, type => user type]
      */
     protected array $data = [
         self::VAR_IN_SQL => [],
@@ -165,10 +165,10 @@ class PDOPlusPlus
      * When an exception closure wrapper is defined then
      * every function will always return null instead of throwing an Exception
      *
-     * Closure prototype : function(Exception $e, PDOPlusPlus $ppp, string $sql, string $func_name, ...$args) {
+     * Closure prototype: function(Exception $e, PDOPlusPlus $ppp, string $sql, string $func_name, ...$args) {
      *                         // ...
      *                     }
-     * The result of the closure will be available through the method ->error()
+     * The result of the closure will be available through the method ->getError()
      * @param Closure $p
      * @see $this->exceptionInterceptor()
      */
@@ -182,7 +182,7 @@ class PDOPlusPlus
      *
      * @return mixed
      */
-    public function error(): mixed
+    public function getErrorFromWapper(): mixed
     {
         return $this->error_from_wrapper;
     }
@@ -233,7 +233,7 @@ class PDOPlusPlus
      *     'dsn_params' => other parameter for the dsn string: array [string]
      * ]
      *
-     * Careful all keys except 'pdo_params' and 'dsn_params' are required
+     * Careful all keys except 'timeout', 'pdo_params' and 'dsn_params' are required
      * If one is missing then an Exception will be thrown
      *
      * @param string $cnx_id
@@ -241,7 +241,7 @@ class PDOPlusPlus
      * @param bool $is_default
      * @throws BadMethodCallException
      */
-    public static function addCnxParams(string $cnx_id, array $params, bool $is_default = true): void
+    public static function addCnxParams(string $cnx_id, array $params, bool $is_default): void
     {
         if (isset(
             $params['scheme'],
@@ -250,8 +250,7 @@ class PDOPlusPlus
             $params['user'],
             $params['pwd'],
             $params['port'],
-            $params['timeout'])
-        ) {
+        )) {
             static::$cnx_params[$cnx_id] = $params;
             if ($is_default) {
                 static::$default_cnx_id = $cnx_id;
@@ -261,6 +260,9 @@ class PDOPlusPlus
         }
     }
 
+    /**
+     * @param string $cnx_id
+     */
     public static function setDefaultConnection(string $cnx_id): void
     {
         static::$default_cnx_id = $cnx_id;
@@ -361,14 +363,14 @@ class PDOPlusPlus
         if ($this->is_transactional) {
             // for nested transaction create internally a save point
             // to be able to rollback only the current transaction
-            // as PDO only rollback all the transactions
-            $save_point = self::getTag('');
+            // as PDO only rollback all transactions at once
+            $save_point = self::getTag(prepend: '');
             $this->savePoint($save_point);
         } else {
             $this->execTransaction(
                 sql: 'START TRANSACTION;',
                 func_name: 'startTransaction',
-                final_transaction_status:  true,
+                final_transaction_status: true,
             );
         }
     }
@@ -415,7 +417,7 @@ class PDOPlusPlus
      *
      * @throws Exception
      */
-    public function rollbackAll(): void
+    public function rollbackAll()
     {
         $this->save_points = [];
         $this->rollback();
@@ -427,7 +429,7 @@ class PDOPlusPlus
      * @param string $point_name
      * @throws Exception
      */
-    public function savePoint(string $point_name): void
+    public function savePoint(string $point_name)
     {
         if ($this->is_transactional) {
             $this->execTransaction(
@@ -443,7 +445,7 @@ class PDOPlusPlus
      * @param string $point_name
      * @throws Exception
      */
-    public function rollbackTo(string $point_name): void
+    public function rollbackTo(string $point_name)
     {
         if ($this->is_transactional) {
             $this->execTransaction(
@@ -460,7 +462,7 @@ class PDOPlusPlus
      * @param string $point_name
      * @throws Exception
      */
-    public function release(string $point_name): void
+    public function release(string $point_name)
     {
         if ($this->is_transactional && in_array($point_name, $this->save_points, true)) {
             $this->execTransaction(
@@ -476,7 +478,7 @@ class PDOPlusPlus
     /**
      * @throws Exception
      */
-    public function releaseAll(): void
+    public function releaseAll()
     {
         foreach ($this->save_points as $point) {
             $this->release($point);
@@ -1119,13 +1121,11 @@ class PDOPlusPlus
          * @param string $p among: int str float double num numeric bool
          * @return int
          */
-        $pdo_type = function(string $p): int {
-            return [
-                'null' => PDO::PARAM_NULL,
-                'int'  => PDO::PARAM_INT,
-                'bool' => PDO::PARAM_BOOL,
-            ][$p] ?? PDO::PARAM_STR;
-        };
+        $pdo_type = fn(string $p): int => [
+            'null' => PDO::PARAM_NULL,
+            'int'  => PDO::PARAM_INT,
+            'bool' => PDO::PARAM_BOOL,
+        ][$p] ?? PDO::PARAM_STR;
 
         // initial binding
         if ($this->params_already_bound === false) {
