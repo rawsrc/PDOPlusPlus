@@ -115,9 +115,10 @@ sql;
 }
 ```
 is replaced by:
+
 ```php
 $ppp = new PPP();
-$in  = $ppp->injectorInByVal(); // PPP will use ->bindValue() internally
+$in  = $ppp->getInjectorInByVal(); // PPP will use ->bindValue() internally
 $sql = <<<sql
 INSERT INTO t_video (
     video_title, video_support, video_multilingual, video_chapter, video_year, video_summary, video_stock
@@ -240,12 +241,13 @@ sql;
 $new_id = $ppp->insert($sql);   // $new_id = 1 (lastInsertId())
 ```
 Let's add the second movie into the database using `PDOPlusPlus`:<br>
-I will use a `PDOStatement` based on values (`->bindValue()`). 
+I will use a `PDOStatement` based on values (`->bindValue()`).
+
 ```php
 include 'PDOPlusPlus.php';
 
 $ppp  = new PDOPlusPlus();
-$in   = $ppp->injectorInByVal();
+$in   = $ppp->getInjectorInByVal();
 $film = $data[1];
 $sql  = <<<sql
 INSERT INTO t_video (video_title, video_support, video_multilingual, video_chapter, video_year, video_summary, video_stock)
@@ -262,14 +264,15 @@ INSERT INTO t_video (video_title, video_support, video_multilingual, video_chapt
 ```
 Let's truncate the table and then add the whole list of films at once.<br>
 This time, I will use a `PDOStatement` based on references (`->bindParam()`) as there are many iterations to do. 
-I will use the injector returned by `->injectorInByRef();`. 
+I will use the injector returned by `->injectorInByRef();`.
+
 ```php
 include 'PDOPlusPlus.php';
 $ppp = new PPP();
 $ppp->execute('TRUNCATE TABLE t_video');
 
 $ppp = new PPP();
-$in  = $ppp->injectorInByRef();   // to pass references you **MUST** use this reference injector 
+$in  = $ppp->getInjectorInByRef();   // to pass references you **MUST** use this reference injector 
 $sql = <<<sql
 INSERT INTO t_video (video_title, video_support, video_multilingual, video_chapter, video_year, video_summary, video_stock)
      VALUES ({$in($title)}, {$in($support)}, {$in($multilingual, 'bool')}, {$in($chapter, 'int')}, {$in($year, 'int')}, 
@@ -388,6 +391,7 @@ $rows = $ppp->call('CALL sp_list_films_group_by_support()', true); // the true t
 ```
 #### **ONE IN PARAM**
 Let's create a SP with one IN Param:
+
 ```php
 // WITH ONE IN PARAM
 $ppp  = new PPP();
@@ -410,12 +414,12 @@ $rows = $ppp->call("CALL sp_list_films_one_in_param({$ppp('DVD')})", true);
 
 // EXACTLY THE SAME USING ->bindValue()
 $ppp  = new PPP();
-$in   = $ppp->injectorInByVal();
+$in   = $ppp->getInjectorInByVal();
 $rows = $ppp->call("CALL sp_list_films_one_in_param({$in('DVD')})", true);
 
 // AND IF YOU WANT TO USE A REFERENCE INSTEAD
 $ppp  = new PPP();
-$in   = $ppp->injectorInByRef();
+$in   = $ppp->getInjectorInByRef();
 $sup  = 'DVD';
 $rows = $ppp->call("CALL sp_list_films_one_in_param({$in($sup)})", true); 
 ```
@@ -437,9 +441,10 @@ sql
 );
 ```
 And call it using the specific injector for the `OUT` param:
+
 ```php
 $ppp  = new PPP();
-$out  = $ppp->injectorOut();
+$out  = $ppp->getInjectorOut();
 $exec = $ppp->call("CALL sp_nb_films_one_out_param({$out('@nb')})", false);
 $nb   = $exec['out']['@nb'];
 ```
@@ -447,6 +452,7 @@ $nb   = $exec['out']['@nb'];
 
 #### **ONE DATASET AND TWO OUT PARAMS**
 It is also possible to mix dataset and `OUT` param:
+
 ```php
 // WITH ROWSET AND TWO OUT PARAM
 $ppp  = new PPP();
@@ -464,7 +470,7 @@ sql
 );
 
 $ppp   = new PPP();
-$out   = $ppp->injectorOut();
+$out   = $ppp->getInjectorOut();
 $exec  = $ppp->call("CALL sp_nb_films_rowset_two_out_param({$out('@nb_blu_ray')}, {$out('@nb_dvd')})", true);
 $rows  = $exec[0];  // $exec[0] => for the first dataset which is an array of all films ordered by year DESC
 $nb_br = $exec['out']['@nb_blu_ray']; // note the key 'out'
@@ -493,10 +499,11 @@ sql
 ```
 And call it using the specific injectors: one for `INOUT` and another one for `OUT` params.<br>
 Please be careful with the syntax for the `INOUT` injector.
+
 ```php
 $ppp   = new PPP();
-$io    = $ppp->injectorInOutByVal();       // io => input/output
-$out   = $ppp->injectorOut();
+$io    = $ppp->getInjectorInOutByVal();       // io => input/output
+$out   = $ppp->getInjectorOut();
 $exec  = $ppp->call("CALL sp_nb_films_one_inout_two_out_param({$io('25', '@stock', 'int')}, {$out('@nb_blu_ray')}, {$out('@nb_dvd')})", false);
 $stock = $exec['out']['@stock'];
 $nb_br = $exec['out']['@nb_blu_ray'];
@@ -518,10 +525,11 @@ You have several methods that will help you to manage your SQL code flow:
 If you're familiar with the SQL transactions theory, the functions are well named and easy to understand.
 
 ### **LOCK THE TYPE OF THE INJECTED VALUE**
-Since the v3.1.1, you can once for all define and lock simultaneously the type of the variable for every injector. 
+Since the v3.1.1, you can once for all define and lock simultaneously the type of the variable for every injector.
+
 ```php
 $ppp = new PPP();
-$in  = $ppp->injectorInByVal('int');
+$in  = $ppp->getInjectorInByVal('int');
 // now all injected values using $in() are considered by the engine as integer even if you try to redefine it on the fly
 $var = $in('123', 'int');
 // is equivalent to:  
@@ -530,9 +538,10 @@ $var = $in('123');
 $var = $in('123', 'str');
 ```
 You can also define and lock the type of an injector after creating it:
+
 ```php
 $ppp = new PPP();
-$in  = $ppp->injectorInByVal();
+$in  = $ppp->getInjectorInByVal();
 $in->lockType('int');
 ```
 
