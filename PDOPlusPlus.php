@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace rawsrc\PDOPlusPlus;
 
+include_once 'AbstractInjector.php';
+
+use rawsrc\PDOPlusPlus\AbstractInjector;
+
 use BadMethodCallException;
 use Closure;
 use Exception;
@@ -12,16 +16,25 @@ use PDOException;
 use PDOStatement;
 use TypeError;
 
+use function array_key_first;
+use function array_keys;
 use function array_merge;
+use function array_pop;
+use function array_search;
+use function array_splice;
+use function count;
 use function implode;
 use function in_array;
+use function is_object;
+use function is_scalar;
+use function method_exists;
 use function str_replace;
 
 /**
  * PDOPlusPlus : A PHP Full Object PDO Wrapper with a new revolutionary fluid SQL syntax
  *
  * @link        https://github.com/rawsrc/PDOPlusPlus
- * @author      rawsrc - https://www.developpez.net/forums/u32058/rawsrc/
+ * @author      rawsrc
  * @copyright   MIT License
  *
  *              Copyright (c) 2021+ rawsrc
@@ -53,12 +66,12 @@ class PDOPlusPlus
     /**
      * User data: 7 different injectors
      */
-    protected const VAR_IN_SQL = 'in_sql';
-    protected const VAR_IN_BY_VAL = 'in_by_val';
+    protected const VAR_IN = 'in';
     protected const VAR_IN_BY_REF = 'in_by_ref';
-    protected const VAR_INOUT_SQL = 'inout_sql';
-    protected const VAR_INOUT_BY_VAL = 'inout_by_val';
+    protected const VAR_IN_BY_VAL = 'in_by_val';
+    protected const VAR_INOUT = 'inout';
     protected const VAR_INOUT_BY_REF = 'inout_by_ref';
+    protected const VAR_INOUT_BY_VAL = 'inout_by_val';
     protected const VAR_OUT = 'out';
     /**
      * @var array [cnx id => PDO instance]
@@ -69,13 +82,17 @@ class PDOPlusPlus
      */
     protected static array $cnx_params = [];
     /**
-     * @var string|null
+     * @var int|string|null
      */
-    protected static string|null $default_cnx_id = null;
+    protected static int|string|null $default_cnx_id = null;
     /**
-     * @var string|null
+     * @var int|string|null
      */
-    protected string|null $current_cnx_id = null;
+    protected int|string|null $current_cnx_id = null;
+    /**
+     * @var PDO|null
+     */
+    protected PDO|null $current_pdo = null;
     /**
      * List all generated tags during the current session
      * @var array [tag]
@@ -90,30 +107,18 @@ class PDOPlusPlus
      * @var array [tag => [value => user value, type => user type]
      */
     protected array $data = [
-        self::VAR_IN_SQL => [],
-        self::VAR_IN_BY_VAL => [],
+        self::VAR_IN => [],
         self::VAR_IN_BY_REF => [],
-        self::VAR_INOUT_SQL => [],
-        self::VAR_INOUT_BY_VAL => [],
+        self::VAR_IN_BY_VAL => [],
+        self::VAR_INOUT => [],
         self::VAR_INOUT_BY_REF => [],
+        self::VAR_INOUT_BY_VAL => [],
         self::VAR_OUT => [],
     ];
     /**
-     * @var array
+     * @var string Build sql string
      */
-    protected array $last_bound_type_tags_by_ref = [];
-    /**
-     * @var bool
-     */
-    protected bool $debug;
-    /**
-     * @var bool
-     */
-    protected bool $params_already_bound = false;
-    /**
-     * @var bool
-     */
-    protected bool $is_transactional = false;
+    protected string $sql = '';
     /**
      * @var PDOStatement|null
      */
@@ -132,15 +137,38 @@ class PDOPlusPlus
      * @var mixed
      */
     protected mixed $error_from_wrapper;
+    /**
+     * @var bool
+     */
+    protected bool $throw = true;
+    /**
+     * @var bool
+     */
+    protected bool $has_failed = false;
+    /**
+     * @var array
+     */
+    protected array $last_bound_type_tags_by_ref = [];
+
+    /**
+     * The auto-reset feature prepare automatically the current instance for a new sql statement if there's no
+     * BY REF
+     *
+     * @param string|null $cnx_id if null then the default connection will be used
+     * @param bool $auto_reset
+     */
+    public function __construct(?string $cnx_id = null, bool $auto_reset = true)
+    {
+        $this->current_cnx_id = $cnx_id;
+        $this->auto_reset = $auto_reset;
+    }
 
     /**
      * @return bool
      */
-    protected function hasInOutTags(): bool
+    public function hasFailed(): bool
     {
-        return ! (empty($this->data[self::VAR_INOUT_SQL])
-            && empty($this->data[self::VAR_INOUT_BY_VAL])
-            && empty($this->data[self::VAR_INOUT_BY_REF]));
+        return $this->has_failed;
     }
 
     /**
@@ -149,59 +177,22 @@ class PDOPlusPlus
     protected function hasOutTags(): bool
     {
         return ! (empty($this->data[self::VAR_OUT])
-            && empty($this->data[self::VAR_INOUT_BY_VAL])
+            && empty($this->data[self::VAR_INOUT])
             && empty($this->data[self::VAR_INOUT_BY_REF])
+            && empty($this->data[self::VAR_INOUT_BY_VAL])
         );
     }
 
     /**
-     * @param string|null $cnx_id if null then the default connection will be used
-     * @param bool $auto_reset
-     * @param bool $debug
-     */
-    public function __construct(?string $cnx_id = null, bool $auto_reset = true, bool $debug = false)
-    {
-        $this->current_cnx_id = $cnx_id;
-        $this->auto_reset = $auto_reset;
-        $this->debug = $debug;
-    }
-
-    /**
-     * When an exception closure wrapper is defined then
-     * every function will always return null instead of throwing an Exception
-     *
-     * Closure prototype: function(Exception $e, PDOPlusPlus $ppp, string $sql, string $func_name, ...$args) {
-     *                         // ...
-     *                     }
-     * The result of the closure will be available through the method ->getError()
-     * @param Closure $p
-     * @see $this->exceptionInterceptor()
-     */
-    public static function setExceptionWrapper(Closure $p)
-    {
-        static::$exception_wrapper = $p;
-    }
-
-    /**
-     * Return the result of the exception wrapper
-     *
-     * @return mixed
-     */
-    public function getErrorFromWapper(): mixed
-    {
-        return $this->error_from_wrapper;
-    }
-
-    /**
-     * @param string|null $cnx_id null => default connection
+     * @param int|string|null $cnx_id null => default connection
      * @return PDO
      * @throws BadMethodCallException|Exception
      */
-    public static function getPdo(?string $cnx_id = null): PDO
+    public static function getPdo(int|string|null $cnx_id = null): PDO
     {
-        $cnx_id ??= static::$default_cnx_id ?? null;
+        $cnx_id ??= static::getDefaultCnxId();
 
-        if (isset($cnx_id, static::$pdo[$cnx_id])) {
+        if (isset(static::$pdo[$cnx_id])) {
             return static::$pdo[$cnx_id];
         } elseif (isset(static::$cnx_params[$cnx_id])) {
             $params = static::$cnx_params[$cnx_id];
@@ -221,6 +212,21 @@ class PDOPlusPlus
         }
 
         throw new BadMethodCallException('Unknown connection id');
+    }
+
+    /**
+     * @return int|string
+     * @throws Exception
+     */
+    protected static function getDefaultCnxId(): int|string
+    {
+        if (isset(static::$default_cnx_id)) {
+            return static::$default_cnx_id;
+        } elseif (count(static::$cnx_params) === 1) {
+            return array_key_first(static::$cnx_params);
+        } else {
+            throw new Exception('No connection is available');
+        }
     }
 
     /**
@@ -266,9 +272,9 @@ class PDOPlusPlus
     }
 
     /**
-     * @param string $cnx_id
+     * @param int|string|null $cnx_id
      */
-    public static function setDefaultConnection(string $cnx_id): void
+    public static function setDefaultConnection(int|string|null $cnx_id): void
     {
         static::$default_cnx_id = $cnx_id;
     }
@@ -276,7 +282,7 @@ class PDOPlusPlus
     //region DATABASE CONNECTION
 
     /**
-     * Default parameters for PDO are :
+     * Default overridable parameters for PDO are :
      *      PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
      *      PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
      *      PDO::ATTR_EMULATE_PREPARES   => false
@@ -341,43 +347,31 @@ class PDOPlusPlus
      */
     public function __invoke(...$args): mixed
     {
-        return $this->getInjectorInSqlOrByVal(self::VAR_IN_SQL)(...$args);
+        return $this->getInjectorIn(self::VAR_IN)(...$args);
     }
 
     //region TRANSACTION
     /**
-     * The SQL "SET TRANSACTION" must be defined before starting
+     * The SQL "SET TRANSACTION" parameters must be defined before starting
      * a new transaction otherwise it will be ignored
      *
      * @param string $sql
      * @throws Exception
      */
-    public function setTransaction(string $sql)
+    public function setTransaction(string $sql): void
     {
-        if ( ! $this->is_transactional) {
-            $this->execTransaction($sql, 'setTransaction', false);
-        }
+        $this->execTransaction($sql, 'setTransaction');
     }
 
     /**
      * @throws Exception
      */
-    public function startTransaction()
+    public function startTransaction(): void
     {
-        // transaction already started
-        if ($this->is_transactional) {
-            // for nested transaction create internally a save point
-            // to be able to rollback only the current transaction
-            // as PDO only rollback all transactions at once
-            $save_point = self::getTag(prepend: '');
-            $this->savePoint($save_point);
-        } else {
-            $this->execTransaction(
-                sql: 'START TRANSACTION;',
-                func_name: 'startTransaction',
-                final_transaction_status: true,
-            );
-        }
+        $this->execTransaction(
+            sql: 'START TRANSACTION;',
+            func_name: 'startTransaction',
+        );
     }
 
     /**
@@ -385,15 +379,13 @@ class PDOPlusPlus
      *
      * @throws Exception
      */
-    public function commit()
+    public function commit(): void
     {
-        if ($this->is_transactional) {
-            $this->execTransaction(
-                sql: 'COMMIT;',
-                func_name: 'commit',
-                final_transaction_status: false,
-            );
-        }
+        $this->execTransaction(
+            sql: 'COMMIT;',
+            func_name: 'commit',
+        );
+        $this->autoReset();
     }
 
     /**
@@ -401,81 +393,77 @@ class PDOPlusPlus
      *
      * @throws Exception
      */
-    public function rollback()
+    public function rollback(): void
     {
-        if ($this->is_transactional) {
-            if (empty($this->save_points)) {
-                $this->execTransaction(
-                    sql: 'ROLLBACK;',
-                    func_name: 'rollback',
-                    final_transaction_status: false,
-                );
-            } else {
-                $save_point = array_pop($this->save_points);
-                $this->rollbackTo($save_point);
-            }
+        if (empty($this->save_points) || (count($this->save_points) === 1)) {
+            $this->rollbackAll();
+        } else {
+            $save_point = array_pop($this->save_points);
+            $this->rollbackTo($save_point);
         }
     }
 
     /**
-     * Rollback the whole transaction at once
+     * @param string $save_point
+     * @throws Exception
+     */
+    public function rollbackTo(string $save_point): void
+    {
+        if (in_array($save_point, $this->save_points, true)) {
+            // roll back all commands that were executed after the savepoint was established.
+            // implicitly destroys all save points that were established after the named savepoint
+            $this->execTransaction(
+                sql: "ROLLBACK TO {$save_point};",
+                func_name: 'rollbackTo',
+            );
+            $pos = array_search($save_point, $this->save_points, true);
+            array_splice($this->save_points, $pos + 1);
+        }
+    }
+
+    /**
+     * Rollback all the transactions at once (even nested ones)
      *
      * @throws Exception
      */
-    public function rollbackAll()
+    public function rollbackAll(): void
     {
+        $this->execTransaction(
+            sql: 'ROLLBACK;',
+            func_name: 'rollback',
+        );
         $this->save_points = [];
-        $this->rollback();
     }
 
     /**
      * Create a save point
      *
-     * @param string $point_name
+     * @param string $save_point_name
      * @throws Exception
      */
-    public function savePoint(string $point_name)
+    public function createSavePoint(string $save_point_name)
     {
-        if ($this->is_transactional) {
-            $this->execTransaction(
-                sql: "SAVEPOINT {$point_name};",
-                func_name: 'savePoint',
-                final_transaction_status: null,
-            );
-            $this->save_points[] = $point_name;
-        }
-    }
-
-    /**
-     * @param string $point_name
-     * @throws Exception
-     */
-    public function rollbackTo(string $point_name)
-    {
-        if ($this->is_transactional) {
-            $this->execTransaction(
-                sql: "ROLLBACK TO {$point_name};",
-                func_name: 'rollbackTo',
-                final_transaction_status: null,
-            );
-        }
+        $this->execTransaction(
+            sql: "SAVEPOINT {$save_point_name};",
+            func_name: 'savePoint',
+        );
+        $this->save_points[] = $save_point_name;
     }
 
     /**
      * Release a save point
      *
-     * @param string $point_name
+     * @param string $save_point
      * @throws Exception
      */
-    public function release(string $point_name)
+    public function release(string $save_point): void
     {
-        if ($this->is_transactional && in_array($point_name, $this->save_points, true)) {
+        if (in_array($save_point, $this->save_points, true)) {
             $this->execTransaction(
-                sql: "RELEASE SAVEPOINT {$point_name};",
+                sql: "RELEASE SAVEPOINT {$save_point};",
                 func_name: 'release',
-                final_transaction_status: null,
             );
-            $pos = array_search($point_name, $this->save_points, true);
+            $pos = array_search($save_point, $this->save_points, true);
             unset($this->save_points[$pos]);
         }
     }
@@ -483,105 +471,50 @@ class PDOPlusPlus
     /**
      * @throws Exception
      */
-    public function releaseAll()
+    public function releaseAll(): void
     {
-        foreach ($this->save_points as $point) {
-            $this->release($point);
+        foreach ($this->save_points as $save_point) {
+            $this->execTransaction(
+                sql: "RELEASE SAVEPOINT {$save_point};",
+                func_name: 'release',
+            );
         }
+        $this->save_points = [];
     }
 
     /**
      * @param string $sql
      * @param string $func_name
-     * @param bool|null $final_transaction_status
+     * @return void|null
      * @throws Exception
      */
-    private function execTransaction(string $sql, string $func_name, ?bool $final_transaction_status)
+    protected function execTransaction(string $sql, string $func_name)
     {
         try {
             self::getPdo($this->current_cnx_id)->exec($sql);
-            if ($final_transaction_status !== null) {
-                $this->is_transactional = $final_transaction_status;
-            }
-            if ($this->is_transactional === false) {
-                $this->save_points = [];
-            }
         } catch (Exception $e) {
-            $this->exceptionInterceptor($e, $sql, $func_name);
-            if (isset(static::$exception_wrapper)) {
-                return null;
-            } else {
-                throw $e;
-            }
+            $this->exceptionInterceptor($e, $func_name);
+
+            return null;
         }
     }
     //endregion
 
     //region INJECTORS
+    //region IN
     /**
-     * Injector for values using sql direct escaping
+     * Plain escaped SQL value
      *
-     * @param string|null $locked_data_type Define and lock the type of the value among: int str float double num numeric bool
-     * @return object
+     * @param string|null $final_injector_type Define and lock the type of the value among: int str float double num numeric bool binary
+     * @return AbstractInjector
      * @throws TypeError
      */
-    public function getInjectorInSql(?string $locked_data_type = null): object
+    public function getInjectorIn(?string $final_injector_type = null): AbstractInjector
     {
-        return $this->getInjectorInSqlOrByVal(self::VAR_IN_SQL, $locked_data_type);
-    }
-
-    /**
-     * Injector for values using the $pdo->bindValue() mechanism
-     *
-     * @param string|null $locked_data_type Define and lock the type of the value among: int str float double num numeric bool
-     * @return object
-     * @throws TypeError
-     */
-    public function getInjectorInByVal(?string $locked_data_type = null): object
-    {
-        return $this->getInjectorInSqlOrByVal(self::VAR_IN_BY_VAL, $locked_data_type);
-    }
-
-    /**
-     * Injector
-     * Mode in_sql => the value is directly escaped in the sql string
-     * Mode in_by_val => the value is bound using the PDO mechanism ->bindValue()
-     *
-     * @param string $mode in_sql|in_by_val
-     * @param string|null $locked_data_type Define and lock the type of the value among: int str float double num numeric bool
-     * @return object
-     * @throws TypeError
-     */
-    protected function getInjectorInSqlOrByVal(string $mode, ?string $locked_data_type = null): object
-    {
-        return new class($this->data, $mode, $locked_data_type) {
-            private array $data;
-            private string $mode;
-            private ?string $locked_data_type;
-
-            /**
-             * @param string $type among: int str float double num numeric bool
-             */
-            public function setDataTypeAndLock(string $type)
-            {
-                $this->locked_data_type = $type;
-            }
-
-            /**
-             * @param array $data
-             * @param string $mode
-             * @param string|null $locked_data_type
-             */
-            public function __construct(array &$data, string $mode, ?string $locked_data_type = null)
-            {
-                $this->data =& $data;
-                $this->mode = $mode;
-                $this->locked_data_type = $locked_data_type;
-            }
-
+        return new class($this->data, $final_injector_type) extends AbstractInjector {
             /**
              * @param mixed $value
-             * @param string $type
+             * @param string $type among: int str float double num numeric bool binary
              * @return string
              * @throws TypeError
              */
@@ -594,9 +527,9 @@ class PDOPlusPlus
                 }
 
                 $tag = PDOPlusPlus::getTag();
-                $this->data[$this->mode][$tag] = [
+                $this->data['in'][$tag] = [
                     'value' => $value,
-                    'type' => $this->locked_data_type ?? $type,
+                    'type' => $this->final_injector_type ?? $type,
                 ];
 
                 return $tag;
@@ -605,38 +538,17 @@ class PDOPlusPlus
     }
 
     /**
-     * Injector for values using the $pdo->bindParam() mechanism
+     * Injector for referenced values using a statement with ->bindParam()
      *
-     * @param string|null $locked_data_type Define and lock the type of the value among: int str float double num numeric bool
-     * @return object
+     * @param string|null $final_injector_type Define and lock the type of the value among: int str float double num numeric bool binary
+     * @return AbstractInjector
      */
-    public function getInjectorInByRef(?string $locked_data_type = null): object
+    public function getInjectorInByRef(?string $final_injector_type = null): AbstractInjector
     {
-        return new class($this->data, $locked_data_type) {
-            private array $data;
-            private ?string $locked_data_type;
-
-            /**
-             * @param string $type among: int str float double num numeric bool
-             */
-            public function setDataTypeAndLock(string $type)
-            {
-                $this->locked_data_type = $type;
-            }
-
-            /**
-             * @param array $data
-             * @param string|null $locked_data_type
-             */
-            public function __construct(array &$data, ?string $locked_data_type = null)
-            {
-                $this->data =& $data;
-                $this->locked_data_type = $locked_data_type;
-            }
-
+        return new class($this->data, $final_injector_type) extends AbstractInjector {
             /**
              * @param mixed $value
-             * @param string $type among: int str float double num numeric bool
+             * @param string $type among: int str float double num numeric bool binary
              * @return string
              */
             public function __invoke(mixed &$value, string $type = 'str'): string
@@ -644,7 +556,7 @@ class PDOPlusPlus
                 $tag = PDOPlusPlus::getTag();
                 $this->data['in_by_ref'][$tag] = [
                     'value' => &$value,
-                    'type' => $this->locked_data_type ?? $type,
+                    'type' => $this->final_injector_type ?? $type,
                 ];
 
                 return $tag;
@@ -653,252 +565,292 @@ class PDOPlusPlus
     }
 
     /**
-     * Injector for params having only OUT attribute
-     * @return object
+     * Injector for values using a statement with ->bindValue()
+     *
+     * @param string|null $final_injector_type Define and lock the type of the value among: int str float double num numeric bool binary
+     * @return AbstractInjector
+     * @throws TypeError
      */
-    public function getInjectorOut(): object
+    public function getInjectorInByVal(?string $final_injector_type = null): AbstractInjector
     {
-        return new class($this->data) {
-            private array $data;
-
+        return new class($this->data, $final_injector_type) extends AbstractInjector {
             /**
-             * @param array $data
-             */
-            public function __construct(array &$data)
-            {
-                $this->data =& $data;
-            }
-
-            /**
-             * @param string $out_tag ex:'@id'
+             * @param mixed $value
+             * @param string $type among: int str float double num numeric bool binary
              * @return string
+             * @throws TypeError
              */
-            public function __invoke(string $out_tag): string
+            public function __invoke(mixed $value, string $type = 'str'): string
             {
                 $tag = PDOPlusPlus::getTag();
-                $this->data['out'][$tag] = ['user_tag' => $out_tag];
+                $this->data['in_by_val'][$tag] = [
+                    'value' => $value,
+                    'type' => $this->final_injector_type ?? $type,
+                ];
 
                 return $tag;
             }
         };
     }
+    //endregion IN
 
+    //region INOUT
     /**
-     * @param string|null $data_type Define and lock the type of the value among: int str float double num numeric bool
-     * @return object
-     */
-    public function getInjectorInOutSql(?string $data_type = null): object
-    {
-        return $this->getInjectorInOutSqlOrByVal(self::VAR_INOUT_SQL, $data_type);
-    }
-
-    /**
-     * @param string|null $data_type Define and lock the type of the value among: int str float double num numeric bool
-     * @return object
-     */
-    public function getInjectorInOutByVal(?string $data_type = null): object
-    {
-        return $this->getInjectorInOutSqlOrByVal(self::VAR_INOUT_BY_VAL, $data_type);
-    }
-
-    /**
-     * Injector for by val params having IN OUT attribute
-     * Mode inout_sql    => the value is directly escaped in the sql string
-     * Mode inout_by_val => the value is bound using the PDO mechanism ->bindValue()
+     * Injector for a plain sql escaped INOUT attribute
      *
-     * @param string $mode inout_sql|inout_by_val
-     * @param string|null $locked_data_type Define and lock the type of the value among: int str float double num numeric bool
-     * @return object
+     * @param string|null $final_injector_type  Define and lock the type of the value among: int str float double num numeric bool
+     * @return AbstractInjector
      */
-    protected function getInjectorInOutSqlOrByVal(string $mode, ?string $locked_data_type = null): object
+    public function getInjectorInOut(?string $final_injector_type = null): AbstractInjector
     {
-        return new class($this->data, $mode, $locked_data_type) {
-            private array $data;
-            private string $mode;
-            private ?string $locked_data_type;
-
-            /**
-             * @param string $type among: int str float double num numeric bool
-             */
-            public function setDataTypeAndLock(string $type)
-            {
-                $this->locked_data_type = $type;
-            }
-
-            /**
-             * @param array $data
-             * @param string $mode
-             * @param string|null $locked_data_type
-             */
-            public function __construct(array &$data, string $mode, ?string $locked_data_type = null)
-            {
-                $this->data =& $data;
-                $this->mode = $mode;
-                $this->locked_data_type = $locked_data_type;
-            }
-
+        return new class($this->data, $final_injector_type) extends AbstractInjector {
             /**
              * @param mixed $value
              * @param string $inout_tag ex: '@id'
-             * @param string $type among: int str float double num numeric bool
+             * @param string $type among: int str float double num numeric bool binary
              * @return string
              */
             public function __invoke(mixed $value, string $inout_tag, string $type = 'str'): string
             {
-                $tag = \PDOPlusPlus::getTag();
-                $this->data[$this->mode][$tag] = [
-                    'user_tag' => $inout_tag,
+                $this->data['inout'][$inout_tag] = [
                     'value' => $value,
-                    'type' => $this->locked_data_type ?? $type,
+                    'type' => $this->final_injector_type ?? $type,
                 ];
 
-                return $tag;
+                return $inout_tag;
             }
         };
     }
 
     /**
-     * Injector for by ref params having IN OUT attribute
-     * @param string|null $locked_data_type Define and lock the type of the value among: int str float double num numeric bool
-     * @return object
+     * Injector for a referenced INOUT attribute using a prepared statement with ->bindParam()
+     *
+     * @param string|null $final_injector_type Define and lock the type of the value among: int str float double num numeric bool
+     * @return AbstractInjector
      */
-    public function getInjectorInOutByRef(?string $locked_data_type = null): object
+    public function getInjectorInOutByRef(?string $final_injector_type = null): AbstractInjector
     {
-        return new class($this->data, $locked_data_type) {
-            private array $data;
-            private ?string $locked_data_type;
-
-            /**
-             * @param string $type  among: int str float double num numeric bool
-             */
-            public function setDataTypeAndLock(string $type)
-            {
-                $this->locked_data_type = $type;
-            }
-
-            /**
-             * @param array $data
-             * @param string|null $locked_data_type
-             */
-            public function __construct(array &$data, ?string $locked_data_type = null)
-            {
-                $this->data =& $data;
-                $this->locked_data_type = $locked_data_type;
-            }
-
+        return new class($this->data, $final_injector_type) extends AbstractInjector {
             /**
              * @param mixed $value
              * @param string $inout_tag ex: '@id'
-             * @param string $type among: int str float double num numeric bool
+             * @param string $type among: int str float double num numeric bool binary
              * @return string
              */
             public function __invoke(mixed &$value, string $inout_tag, string $type = 'str'): string
             {
-                $tag = PDOPlusPlus::getTag();
-                $this->data['inout_by_ref'][$tag] = [
-                    'user_tag' => $inout_tag,
+                $this->data['inout_by_ref'][$inout_tag] = [
                     'value' => &$value,
-                    'type' => $this->locked_data_type ?? $type,
+                    'type' => $this->final_injector_type ?? $type,
                 ];
 
-                return $tag;
+                return $inout_tag;
             }
         };
     }
-    //endregion
+
+    /**
+     * Injector for an INOUT attribute using a prepared statement with ->bindValue()
+     *
+     * @param string|null $final_injector_type Define and lock the type of the value among: int str float double num numeric bool
+     * @return AbstractInjector
+     */
+    public function getInjectorInOutByVal(?string $final_injector_type = null): AbstractInjector
+    {
+        return new class($this->data, $final_injector_type) extends AbstractInjector {
+            /**
+             * @param mixed $value
+             * @param string $inout_tag ex: '@id'
+             * @param string $type among: int str float double num numeric bool binary
+             * @return string
+             */
+            public function __invoke(mixed $value, string $inout_tag, string $type = 'str'): string
+            {
+                $this->data['inout_by_val'][$inout_tag] = [
+                    'value' => $value,
+                    'type' => $this->final_injector_type ?? $type,
+                ];
+
+                return $inout_tag;
+            }
+        };
+    }
+    //endregion INOUT
+
+    //region OUT
+    /**
+     * Injector for an OUT attribute
+     *
+     * @return AbstractInjector
+     */
+    public function getInjectorOut(): AbstractInjector
+    {
+        return new class($this->data) extends AbstractInjector {
+            /**
+             * @param string $out_tag ex:'@id'
+             * @param string $type among: int str float double num numeric bool binary
+             * @return string
+             */
+            public function __invoke(string $out_tag, string $type = 'str'): string
+            {
+                $this->data['out'][$out_tag] = [
+                    'type' => $this->final_injector_type ?? $type,
+                ];
+
+                return $out_tag;
+            }
+        };
+    }
+    //endregion OUT
+    //endregion INJECTORS
 
     /**
      * @param string $sql
      * @return string|null lastInsertId() | null on error
      * @throws Exception
      */
-    public function insert(string $sql): ?string
+    public function insert(string $sql): string|null
     {
         try {
-            $result = $this->builtPrepareAndAttachValuesOrParams($sql);
-            $pdo = self::getPdo($this->current_cnx_id);
-            if ($result === true) {
+            $this->buildSql($sql);
+            if ($this->useStatement()) {
                 $this->stmt->execute();
             } else {
-                $pdo->exec($result);
+                $this->current_pdo->exec($this->sql);
             }
             $this->autoReset();
 
-            return $pdo->lastInsertId();
+            return $this->current_pdo->lastInsertId();
         } catch (Exception $e) {
-            $this->exceptionInterceptor($e, $sql, 'insert');
-            if (isset(static::$exception_wrapper)) {
-                return null;
-            } else {
-                throw $e;
-            }
-        }
-    }
+            $this->exceptionInterceptor($e, 'insert');
 
-    /**
-     * @param mixed $sql
-     * @return array|null
-     * @throws Exception
-     */
-    public function select(string $sql): ?array
-    {
-        $this->createStmt($sql, []);
-        if ($this->stmt instanceof PDOStatement) {
-            $data = $this->stmt->fetchAll(PDO::FETCH_ASSOC);
-            $this->autoReset();
-
-            return $data;
-        } else {
             return null;
         }
     }
 
     /**
-     * @param string $sql
-     * @return PDOStatement|null
+     * For select statements with selected binary columns, the method binds the columns
+     * using the array $bound_columns and return the PDOStatement instead of an array of result
+     * As binary columns may be very large and usable as a stream, it's not possible to fetch them all at once as usual
+     *
+     * The string type is among: int str bool binary null
+     * The size is not required, it's depends on the database engine requirements'
+     *
+     * When you have a PDOStatement, you have to read the data using PDO::FETCH_BOUND
+     * while ($row = $stmt->fetch(PDO::FETCH_BOUND) {
+     *     ...
+     * }
+     *
+     * @link https://www.php.net/manual/en/pdo.lobs.php
+     *
+     * @param mixed $sql
+     * @param array $bound_columns [sql col name => [0 => $var name, 1 => string type, 2 => size]]
+     * @return array|PDOStatement|null
      * @throws Exception
      */
-    public function selectStmt(string $sql): ?PDOStatement
-    {
-        return $this->createStmt($sql, []);
-    }
-
-    /**
-     * @param string $sql
-     * @param array $driver_options
-     * @return PDOStatement|null
-     * @throws Exception
-     */
-    public function selectStmtAsScrollableCursor(string $sql, array $driver_options = []): ?PDOStatement
-    {
-        $driver_options = [PDO::ATTR_CURSOR => PDO::CURSOR_SCROLL] + $driver_options;
-
-        return $this->createStmt($sql, $driver_options);
-    }
-
-    /**
-     * @param string $sql
-     * @param array $prepare_options
-     * @return false|PDOStatement|null
-     * @throws Exception
-     */
-    private function createStmt(string $sql, array $prepare_options): false|PDOStatement|null
+    public function select(string $sql, array &$bound_columns = []): array|PDOStatement|null
     {
         try {
-            $result = $this->builtPrepareAndAttachValuesOrParams($sql, $prepare_options);
-            if ($result === true) {
+            $this->buildSql($sql);
+            if ($this->useStatement()) {
                 $this->stmt->execute();
             } else {
-                $this->stmt = self::getPdo($this->current_cnx_id)->query($result);
+                $this->stmt = $this->current_pdo->query($this->sql);
+            }
+
+            if (empty($bound_columns)) {
+                $data = $this->stmt->fetchAll(PDO::FETCH_ASSOC);
+            } else {
+                $this->bindColumns($bound_columns);
+
+                return $this->stmt;
+            }
+            $this->autoReset();
+
+            return $data;
+        } catch (Exception $e) {
+            $this->exceptionInterceptor($e, 'select');
+
+            return null;
+        }
+    }
+
+    /**
+     * @see select()
+     *
+     * @param string $sql
+     * @param array $bound_columns
+     * @return PDOStatement|null
+     * @throws Exception
+     */
+    public function selectStmt(string $sql, array &$bound_columns = []): PDOStatement|null
+    {
+        try {
+            $this->buildSql($sql);
+            if ($this->useStatement()) {
+                $this->stmt->execute();
+            } else {
+                $this->stmt = $this->current_pdo->query($this->sql);
+            }
+
+            if ( ! empty($bound_columns)) {
+                $this->bindColumns($bound_columns);
             }
 
             return $this->stmt;
         } catch (Exception $e) {
-            $this->exceptionInterceptor($e, $sql, 'select');
-            if (isset(static::$exception_wrapper)) {
-                return null;
+            $this->exceptionInterceptor($e, 'selectStmt');
+
+            return null;
+        }
+    }
+
+    /**
+     * @see select()
+     *
+     * @param string $sql
+     * @param array $bound_columns
+     * @param array $driver_options Others options than scrollable cursor (PDO::ATTR_CURSOR => PDO::CURSOR_SCROLL)
+     * @return PDOStatement|null
+     * @throws Exception
+     */
+    public function selectStmtAsScrollableCursor(string $sql, array &$bound_columns = [], array $driver_options = []): PDOStatement|null
+    {
+        $driver_options = [PDO::ATTR_CURSOR => PDO::CURSOR_SCROLL] + $driver_options;
+
+        try {
+            $this->buildSql($sql, $driver_options);
+            if ( ! $this->useStatement()) {
+                $this->stmt = $this->current_pdo->prepare($this->sql, $driver_options);
+            }
+            $this->stmt->execute();
+
+            if ( ! empty($bound_columns)) {
+                $this->bindColumns($bound_columns);
+            }
+
+            return $this->stmt;
+        } catch (Exception $e) {
+            $this->exceptionInterceptor($e, 'selectStmtAsScrollableCursor');
+
+            return null;
+        }
+    }
+
+    /**
+     * The string type is among: int str bool binary null
+     * The size is not required, it's depends on the database engine requirements'
+     *
+     * @param array $bound_columns [sql col name => [0 => $var name, 1 => string type, 2 => size]]
+     */
+    protected function bindColumns(array &$bound_columns): void
+    {
+        foreach ($bound_columns as $sql_col => &$var) {
+            $type = self::getPDOType($var[1]);
+            if (isset($var[2])) {
+                $this->stmt->bindColumn($sql_col, $var[0], $type, $var[2]);
             } else {
-                throw $e;
+                $this->stmt->bindColumn($sql_col, $var[0], $type);
             }
         }
     }
@@ -915,7 +867,6 @@ class PDOPlusPlus
 
     /**
      * @param string $sql
-     * @param bool $auto_reset Reset and prepare the current instance for a new sql statement if there's no BY REF tags
      * @return int|null nb of affected rows
      * @throws Exception
      */
@@ -932,153 +883,166 @@ class PDOPlusPlus
     public function execute(string $sql): ?int
     {
         try {
-            $result = $this->builtPrepareAndAttachValuesOrParams($sql);
-            if ($result === true) {
+            $this->buildSql($sql);
+            if ($this->useStatement()) {
                 $this->stmt->execute();
                 $nb = $this->stmt->rowCount();
-                $this->autoReset($auto_reset);
-
-                return $nb;
             } else {
-                $nb = self::getPdo($this->current_cnx_id)->exec($result);
-                $this->autoReset();
-
-                return $nb;
+                $nb = $this->current_pdo->exec($this->sql);
             }
+            $this->autoReset();
+
+            return $nb;
         } catch (Exception $e) {
-            $this->exceptionInterceptor($e, $sql, 'execute');
-            if (isset(static::$exception_wrapper)) {
-                return null;
-            } else {
-                throw $e;
-            }
+            $this->exceptionInterceptor($e, 'execute');
+
+            return null;
         }
     }
 
     /**
      * @param string $sql
-     * @param bool $is_query
-     * @return mixed
+     * @param bool $is_query For SP that returns a dataset using SELECT
+     * @return array|int|null
      * @throws Exception
      */
-    public function call(string $sql, bool $is_query): mixed
+    public function call(string $sql, bool $is_query): array|int|null
     {
         try {
             $pdo = self::getPdo($this->current_cnx_id);
-            $result = $this->builtPrepareAndAttachValuesOrParams($sql);
+            $this->current_pdo = $pdo;
 
-            $sql = [];
+            // FOR STORED PROCEDURE: UNIVERSAL SQL SYNTAX : "SET @io_param = value"
+            $params = [];
+            $set = fn(string $tag, array &$v) =>
+                "SET {$tag} = ".self::sqlValue(
+                    value: $v['value'],
+                    type: $v['type'],
+                    for_pdo: false,
+                    pdo: $pdo,
+                );
 
-            $sql_inject_io_values = function(string $mode) use (&$sql) {
-                foreach ($this->data[$mode] as $tag => &$io) {
-                    // SQL syntax : "SET @io_param = value"
-                    $sql[] = "SET {$io['user_tag']} = ".self::sqlValue(
-                        value: $io['value'],
-                        type: $io['type'],
-                        for_pdo: false,
-                        cnx_id: $this->current_cnx_id,
-                    );
-                }
-            };
-
-            $sql_inject_io_values(self::VAR_INOUT_BY_VAL);
-            $sql_inject_io_values(self::VAR_INOUT_BY_REF);
-
-            if ( ! empty($sql)) {
-                $pdo->exec(implode(';', $sql));
+            foreach ($this->data[self::VAR_INOUT] as $tag => $v) {
+                $params[] = $set($tag, $v);
+            }
+            foreach ($this->data[self::VAR_INOUT_BY_REF] as $tag => &$v) {
+                $params[] = $set($tag, $v);
             }
 
+            $pdo->exec(implode(';', $params));
 
-            if ($result === true) {
-                $this->stmt->execute();
-            } elseif ($is_query) {
-                // SQL Direct and Query
-                $this->stmt = $pdo->query($result);
-            } else {
-                // SQL Direct
-                if ($this->hasOutTags()) {
-                    $pdo->exec($result);
-
-                    return ['out' => $this->extractOutTags()];
-                } else {
-                    return $pdo->exec($result);
-                }
-            }
-
-            $data    = [];
-            $nb_rows = 0;
             if ($is_query) {
+                // SQL Direct and Query
+                $this->stmt = $pdo->query($sql);
+                $data = [];
+                // extracting all data
                 do {
                     $row = $this->stmt->fetchAll();
                     if ($row) {
                         $data[] = $row;
-                        ++$nb_rows;
                     } else {
                         break;
                     }
                 } while ($this->stmt->nextRowset());
-            }
 
-            // adding the OUT params values
-            if ($this->hasOutTags()) {
-                $data['out'] = $this->extractOutTags();
-            }
+                // adding the OUT tags values
+                if ($this->hasOutTags()) {
+                    $data['out'] = $this->extractOutTags();
+                }
 
-            $this->autoReset();
+                $this->autoReset();
 
-            return $data;
-        } catch (Exception $e) {
-            $this->exceptionInterceptor($e, $sql, 'call');
-            if (isset(static::$exception_wrapper)) {
-                return null;
+                return $data;
             } else {
-                throw $e;
+                // SQL Direct
+                if ($this->hasOutTags()) {
+                    $pdo->exec($sql);
+                    $out = $this->extractOutTags();
+                    $this->autoReset();
+
+                    return ['out' => $out];
+                } else {
+                    $nb = $pdo->exec($sql);
+                    $this->autoReset();
+
+                    return $nb;
+                }
             }
+        } catch (Exception $e) {
+            $this->exceptionInterceptor($e, 'call');
+
+            return null;
         }
     }
 
     /**
-     * @return array|null [out_param => value]
+     * @return array|null [out_tag => value]
      * @throws Exception
      */
     public function extractOutTags(): ?array
     {
         if ($this->hasOutTags()) {
+            $out_tags = array_merge(
+                array_keys($this->data[self::VAR_OUT]),
+                array_keys($this->data[self::VAR_INOUT]),
+                array_keys($this->data[self::VAR_INOUT_BY_REF]),
+                array_keys($this->data[self::VAR_INOUT_BY_VAL]),
+            );
 
             try {
-                $out = array_merge(
-                    $this->data[self::VAR_OUT],
-                    $this->data[self::VAR_INOUT_BY_VAL],
-                    $this->data[self::VAR_INOUT_BY_REF],
-                );
                 $sql = 'SELECT '.implode(', ', $out_tags);
                 $stmt = self::getPdo($this->current_cnx_id)->query($sql);
 
                 return $stmt->fetchAll()[0];
             } catch (Exception $e) {
-                $this->exceptionInterceptor($e, $sql, 'extractOutParams');
-                if (isset(static::$exception_wrapper)) {
-                    return null;
-                } else {
-                    throw $e;
-                }
+                $this->exceptionInterceptor($e, 'extractOutTags');
+
+                return null;
             }
         } else {
             return [];
         }
     }
 
+    //region BUILDING SQL OR/AND STATEMENT
     /**
-     * @param string $modes
-     * @return array [tag => data]
+     * @return bool
      */
-    private function getTagsAndDataByMode(string ...$modes): array
+    protected function useStatement(): bool
+    {
+        return ! (empty($this->data[self::VAR_IN_BY_VAL])
+            && empty($this->data[self::VAR_IN_BY_REF])
+            && empty($this->data[self::VAR_INOUT_BY_VAL])
+            && empty($this->data[self::VAR_INOUT_BY_REF]));
+    }
+
+    /**
+     * @return bool
+     */
+    protected function hasBinaryData(): bool
+    {
+        foreach ($this->data as $k => $values) {
+            foreach ($values as $tag => $v) {
+                if ($v['type'] === 'binary') {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param ...$keys Key from $this->data
+     * @return array
+     */
+    protected function getData(...$keys): array
     {
         $data = [];
-        foreach ($this->data as $mode => &$v) {
-            if (in_array($mode, $modes, true)) {
-                foreach ($v as $tag => &$z) {
-                    $data[$tag] =& $z;
+        foreach ($keys as $k) {
+            if ( ! empty($this->data[$k])) {
+                foreach ($this->data[$k] as $tag => &$v) {
+                    $data[$tag] =& $v;
                 }
             }
         }
@@ -1088,72 +1052,59 @@ class PDOPlusPlus
 
     /**
      * @param string $sql
-     * @param array $prepare_options
-     * @return bool|string  true if the statement has been prepared or string for the plain escaped sql
+     * @param array $prepare_options Used for scrollable cursor
+     * @return string
      * @throws Exception
      */
-    private function builtPrepareAndAttachValuesOrParams(string $sql, array $prepare_options = []): string|bool
+    protected function buildSql(string $sql, array $prepare_options = []): void
     {
-        // replace internal tags by user ones
-        foreach ($this->data[self::VAR_OUT] as $tag => $v) {
-            $sql = str_replace($tag, (string)$v['user_tag'], $sql);
-        }
+        $this->current_pdo = self::getPdo($this->current_cnx_id);
+
+        $replace = fn(string $tag, array &$v, string $sql) =>
+            str_replace($tag, (string)self::sqlValue(
+                value: $v['value'],
+                type: $v['type'],
+                for_pdo: false,
+                pdo: $this->current_pdo
+            ), $sql);
 
         // replace internal tags by plain escaped sql values
-        foreach ($this->getTagsAndDataByMode(self::VAR_IN_SQL, self::VAR_INOUT_SQL) as $tag => $v) {
-            $sql = str_replace($tag, (string)self::sqlValue($v['value'], $v['type'], false, $this->current_cnx_id), $sql);
+        foreach ($this->getData(self::VAR_IN, self::VAR_INOUT) as $tag => &$v) {
+            $sql = $replace($tag, $v, $sql);
         }
 
-
-
+        $this->sql = $sql;
 
         // stop if there's no need to create a statement
-        $by_val = $this->getTagsAndDataByMode(self::VAR_IN_BY_VAL);
-        $by_ref = $this->getTagsAndDataByMode(self::VAR_IN_BY_REF);
-        $inout_by_val = $this->getTagsAndDataByMode(self::VAR_INOUT_BY_VAL);
-        $inout_by_ref = $this->getTagsAndDataByMode(self::VAR_INOUT_BY_REF);
-        if (empty($this->data[self::VAR_IN_BY_VAL]) && empty($this->data[self::VAR_IN_BY_REF)) {
-            return $sql;
+        if ( ! $this->useStatement()) {
+           return;
         }
 
-
-
-
-
-        /**
-         * @param string $p among: int str float double num numeric bool
-         * @return int
-         */
-        $pdo_type = fn(string $p): int => [
-            'null' => PDO::PARAM_NULL,
-            'int'  => PDO::PARAM_INT,
-            'bool' => PDO::PARAM_BOOL,
-        ][$p] ?? PDO::PARAM_STR;
-
         // initial binding
-        if ($this->params_already_bound === false) {
-            if ( ! ($this->stmt instanceof PDOStatement)) {
-                $this->stmt = self::getPdo($this->current_cnx_id)->prepare($sql, $prepare_options);
-            }
+        if ( ! ($this->stmt instanceof PDOStatement)) {
+            $this->stmt = $this->current_pdo->prepare($this->sql, $prepare_options);
 
-            // data using ->bindValue()
-            foreach ($by_val as $tag => $v) {
-                $pdo_value = self::sqlValue($v['value'], $v['type'], true);
-                $this->stmt->bindValue($tag, $pdo_value[0], $pdo_value[1]);
+            // using ->bindValue()
+            foreach ($this->getData(self::VAR_IN_BY_VAL, self::VAR_INOUT_BY_VAL) as $tag => $v) {
+                [$value, $type] = self::sqlValue($v['value'], $v['type'], for_pdo: true);
+                $this->stmt->bindValue($tag, $value, $type);
             }
-
-            // data using ->bindParam()
-            foreach ($by_ref as $tag => &$v) {
-                $type = $pdo_type($v['type']);
+            // using ->bindParam()
+            foreach ($this->getData(self::VAR_IN_BY_REF, self::VAR_INOUT_BY_REF) as $tag => &$v) {
+                $type = self::getPDOType($v['type']);
                 $this->stmt->bindParam($tag, $v['value'], $type);
                 $this->last_bound_type_tags_by_ref[$tag] = $type;
             }
-            $this->params_already_bound = true;
         }
 
         // explicit cast for values by ref and rebinding for null values
-        foreach ($by_ref as $tag => &$v) {
-            $current = self::sqlValue($v['value'], $v['type'], true);
+        $data_by_ref = $this->getData(self::VAR_IN_BY_REF, self::VAR_INOUT_BY_REF);
+        foreach ($data_by_ref as $tag => &$v) {
+            $current = self::sqlValue(
+                value: $v['value'],
+                type: $v['type'],
+                for_pdo: true,
+            );
             // if the current value is null and the previous is not then rebind explicitly the param according to null
             // and the same in the opposite way
             $current_type = $current[1];
@@ -1163,8 +1114,9 @@ class PDOPlusPlus
                 $this->last_bound_type_tags_by_ref[$tag] = PDO::PARAM_NULL;
             } elseif (($current_type !== PDO::PARAM_NULL) && ($previous_type === PDO::PARAM_NULL)) {
                 // rebind the parameter to the initial type
-                $this->stmt->bindParam($tag, $v['value'], $pdo_type($v['type']));
-                $this->last_bound_type_tags_by_ref[$tag] = $pdo_type($v['type']);
+                $type = self::getPDOType($v['type']);
+                $this->stmt->bindParam($tag, $v['value'], $type);
+                $this->last_bound_type_tags_by_ref[$tag] = $type;
             }
 
             // explicit cast for var by ref
@@ -1172,74 +1124,139 @@ class PDOPlusPlus
                 $v['value'] = $current[0];
             }
         }
+    }
+    //endregion BUILDING SQL OR/AND STATEMENT
 
-        return true;
+    //region PROPERTY AUTO-RESET
+    /**
+     * Active the auto-reset feature
+     * Prepare automatically the current instance for a new sql statement
+     */
+    public function setAutoResetOn(): void
+    {
+        $this->auto_reset = true;
     }
 
     /**
-     * Reset and prepare automatically the current instance for a new sql statement if there's no BY REF tags
-     *
-     * @param bool $p
+     * Deactivate the auto-reset feature
+     * You'll not be able to run many statements with the same PDOPlus instance
      */
-    public function setAutoReset(bool $p): void
+    public function setAutoResetOff(): void
     {
-        $this->auto_reset = $p;
+        $this->auto_reset = false;
     }
 
     /**
      * @return bool
      */
-    public function hasAutoReset(): bool
+    public function isAutoResetActivated(): bool
     {
         return $this->auto_reset;
     }
 
-    private function autoReset(): void
+    protected function autoReset(): void
     {
-        if ($this->auto_reset && empty($this->data[self::VAR_IN_BY_REF]) && empty($this->data[self::VAR_INOUT_BY_REF)) {
+        if ($this->auto_reset && ($this->has_failed === false)) {
             $this->reset();
         }
     }
 
-    private function resetData(): void
-    {
-        $this->data = [
-            self::VAR_IN_SQL => [],
-            self::VAR_IN_BY_VAL => [],
-            self::VAR_IN_BY_REF => [],
-            self::VAR_INOUT_SQL => [],
-            self::VAR_INOUT_BY_VAL => [],
-            self::VAR_INOUT_BY_REF => [],
-            self::VAR_OUT => [],
-        ];
-        $this->params_already_bound = false;
-        $this->last_bound_type_tags_by_ref = [];
-    }
-
     /**
      * Reset the instance and prepare it for the next statement
+     * No reset of created save points, use ->releaseAll()
+     * @throws Exception
      */
     public function reset(): void
     {
-        $this->resetData();
+        $this->data = [
+            self::VAR_IN => [],
+            self::VAR_IN_BY_REF => [],
+            self::VAR_IN_BY_VAL => [],
+            self::VAR_INOUT => [],
+            self::VAR_INOUT_BY_REF => [],
+            self::VAR_INOUT_BY_VAL => [],
+            self::VAR_OUT => [],
+        ];
+        $this->sql = '';
         $this->stmt = null;
+        $this->current_pdo = null;
+        $this->has_failed = false;
+        $this->last_bound_type_tags_by_ref = [];
+    }
+    //endregion
+
+    //region PROPERTY THROW
+    /**
+     * Enable throwing any exception
+     */
+    public function setThrowOn(): void
+    {
+        $this->throw = true;
+    }
+
+    /**
+     * Disable throwing any exception and the $exception_wrapper is used instead (if defined)
+     * @param Closure|null $exception_wrapper
+     */
+    public function setThrowOff(Closure|null $exception_wrapper): void
+    {
+        if ($exception_wrapper !== null) {
+            static::$exception_wrapper = $exception_wrapper;
+        }
+        $this->throw = false;
+    }
+    /**
+     * @return bool Tells if the exception wrapper is callable
+     */
+    protected function isNotThrowable(): bool
+    {
+        return ($this->throw === false) && isset(static::$exception_wrapper);
+    }
+    //endregion
+
+    //region EXCEPTION INTERCEPTOR
+    /**
+     * When an exception closure wrapper is defined then
+     * every function will always return null instead of throwing an Exception
+     *
+     * Closure prototype: function(Exception $e, PDOPlus $pp, string $sql, string $func_name, ...$args) {
+     *                         // ...
+     *                     };
+     * The result of the closure will be available through the method ->getErrorFromWrapper()
+     * @param Closure $p
+     * @see $this->exceptionInterceptor()
+     */
+    public static function setExceptionWrapper(Closure $p)
+    {
+        static::$exception_wrapper = $p;
     }
 
     /**
      * @param Exception $e
-     * @param string $sql
      * @param string $func_name
+     * @throws Exception
      */
-    private function exceptionInterceptor(Exception $e, string $sql, string $func_name): void
+    protected function exceptionInterceptor(Exception $e, string $func_name): void
     {
-        if ($this->debug) {
-            var_dump($sql);
-        }
-        if (isset(static::$exception_wrapper)) {
+        $this->has_failed = true;
+        if ($this->isNotThrowable()) {
             $hlp = static::$exception_wrapper;
-            $this->error_from_wrapper = $hlp($e, $this, $sql, $func_name);
+            $this->error_from_wrapper = $hlp($e, $this, $this->sql, $func_name);
+        } else {
+            throw $e;
         }
     }
+
+    /**
+     * Return the result of the exception wrapper
+     *
+     * @return mixed
+     */
+    public function getErrorFromWrapper(): mixed
+    {
+        return $this->error_from_wrapper;
+    }
+    //endregion EXCEPTION INTERCEPTOR
 
     public function closeCursor(): void
     {
@@ -1286,11 +1303,12 @@ class PDOPlusPlus
      * @param $value
      * @param string $type among: int str float double num numeric bool
      * @param bool $for_pdo
+     * @param PDO|null $pdo
      * @param string|null $cnx_id if null => default connection
      * @return array|bool|int|string if $for_pdo => [0 => value, 1 => pdo type] | plain escaped value
      * @throws Exception
      */
-    public static function sqlValue($value, string $type, bool $for_pdo, ?string $cnx_id = null): array|bool|int|string
+    public static function sqlValue($value, string $type, bool $for_pdo, ?PDO $pdo, ?string $cnx_id = null): array|bool|int|string
     {
         if ($value === null) {
             return $for_pdo ? [null, PDO::PARAM_NULL] : 'NULL';
@@ -1306,14 +1324,36 @@ class PDOPlusPlus
             $v = (string)(double)$value;
 
             return $for_pdo ? [$v, PDO::PARAM_STR] : $v;
+        } elseif ($type === 'binary') {
+            if ($for_pdo) {
+                return [$value, PDO::PARAM_LOB];
+            } else {
+                return '0x'.$value;
+            }
         } else {
             $v = (string)$value;
             if ($for_pdo) {
                 return [$v, PDO::PARAM_STR];
             } else {
-                return self::getPdo($cnx_id)->quote($v, PDO::PARAM_STR);
+                $pdo ??= self::getPdo($cnx_id);
+
+                return $pdo->quote($v, PDO::PARAM_STR);
             }
         }
+    }
+
+    /**
+     * @param string $user_type among: int str float double num numeric bool binary
+     * @return int
+     */
+    protected static function getPDOType(string $user_type): int
+    {
+        return [
+            'int' => PDO::PARAM_INT,
+            'bool' => PDO::PARAM_BOOL,
+            'null' => PDO::PARAM_NULL,
+            'binary' => PDO::PARAM_LOB,
+        ][$user_type] ?? PDO::PARAM_STR;
     }
 }
 
