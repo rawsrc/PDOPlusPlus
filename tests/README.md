@@ -10,8 +10,8 @@ directory the [Exacodis, a minimalist test engine for PHP](https://github.com/ra
 Then, define 2 distinct database users:
 - root
 - user_test
-Check [connections.php](/connections.php) for the passwords
+Check [connections.php](https://github.com/rawsrc/PDOPlusPlus/tree/master/tests/connections.php) for the passwords
 
 Once everything is done, call the file `test.php`.
 
-Here's the result: [Global test result](/result_page.html)
+Here's the result: [Global test result](https://github.com/rawsrc/PDOPlusPlus/tree/master/tests/result_page.html)
