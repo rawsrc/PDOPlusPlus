@@ -7,10 +7,14 @@
     {
       "name": "Martin Lacroix",
       "email": "rawsrc@gmail.com",
-      "homepage": "https://www.developpez.net/forums/blogs/32058-rawsrc/",
       "role": "Creator"
     }
   ],
+  "autoload": {
+    "psr-4": {
+      "rawsrc\\PDOPlusPlus\\": "/"
+    }
+  },
   "require": {
     "php": ">=8.0",
     "ext-pdo": "*"
