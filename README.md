@@ -25,6 +25,11 @@ For stored procedures, you'll be able to use any `IN`, `OUT` or `INOUT` params.<
  at once.
 
 A true Swiss knife for PDO.
+
+**INSTALLATION**
+```bash
+composer require rawsrc/pdoplusplus
+```
      
 ### THE CONCEPT
  
