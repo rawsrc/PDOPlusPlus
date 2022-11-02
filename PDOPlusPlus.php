@@ -1,11 +1,10 @@
-<?php
-
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 namespace rawsrc\PDOPlusPlus;
 
 include_once 'AbstractInjector.php';
 
+use InvalidArgumentException;
 use rawsrc\PDOPlusPlus\AbstractInjector;
 
 use BadMethodCallException;
@@ -18,17 +17,15 @@ use TypeError;
 
 use function array_key_first;
 use function array_keys;
-use function array_merge;
 use function array_reduce;
 use function array_search;
 use function array_splice;
 use function count;
 use function implode;
 use function in_array;
-use function is_object;
 use function is_scalar;
-use function method_exists;
 use function str_replace;
+use function substr;
 
 /**
  * PDOPlusPlus : A PHP Full Object PDO Wrapper with a new revolutionary fluid SQL syntax
@@ -37,7 +34,7 @@ use function str_replace;
  * @author      rawsrc
  * @copyright   MIT License
  *
- *              Copyright (c) 2021+ rawsrc
+ *              Copyright (c) 2022+ rawsrc
  *
  *              Permission is hereby granted, free of charge, to any person obtaining a copy
  *              of this software and associated documentation files (the "Software"), to deal
@@ -64,9 +61,10 @@ class PDOPlusPlus
      */
     protected const ALPHA = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
     /**
-     * User data: 7 different injectors
+     * User data: 6 different injectors
      */
     protected const VAR_IN = 'in';
+    protected const VAR_IN_AS_REF = 'in_as_ref';
     protected const VAR_IN_BY_REF = 'in_by_ref';
     protected const VAR_IN_BY_VAL = 'in_by_val';
     protected const VAR_INOUT = 'inout';
@@ -106,6 +104,7 @@ class PDOPlusPlus
      */
     protected array $data = [
         self::VAR_IN => [],
+        self::VAR_IN_AS_REF => [],
         self::VAR_IN_BY_REF => [],
         self::VAR_IN_BY_VAL => [],
         self::VAR_INOUT => [],
@@ -146,9 +145,9 @@ class PDOPlusPlus
      */
     protected bool $params_already_bound = false;
     /**
-     * @var array
+     * @var array [tag => PDO::PARAM_]
      */
-    protected array $last_bound_type_tags_by_ref = [];
+    protected array $last_bound_type = [];
     /**
      * @var array
      */
@@ -294,6 +293,7 @@ class PDOPlusPlus
     }
 
     //region DATABASE CONNECTION
+
     /**
      * Default overridable parameters for PDO are :
      *      PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
@@ -321,9 +321,10 @@ class PDOPlusPlus
         string $pwd,
         string $port,
         string $timeout,
-        array $pdo_params = [],
-        array $dsn_params = [],
-    ): PDO {
+        array  $pdo_params = [],
+        array  $dsn_params = [],
+    ): PDO
+    {
 
         $dsn = "{$scheme}:host={$host};";
 
@@ -344,10 +345,10 @@ class PDOPlusPlus
         }
 
         $params = $pdo_params + [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES => false
-        ];
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES => false
+            ];
 
         return new PDO($dsn, $user, $pwd, $params);
     }
@@ -369,6 +370,7 @@ class PDOPlusPlus
     }
 
     //region TRANSACTION
+
     /**
      * The SQL "SET TRANSACTION" parameters must be defined before starting
      * a new transaction otherwise it will be ignored
@@ -376,7 +378,7 @@ class PDOPlusPlus
      * @param string $sql
      * @throws Exception
      */
-    public function setTransaction(string $sql)
+    public function setTransaction(string $sql): void
     {
         $this->execTransaction($sql, 'setTransaction');
     }
@@ -384,12 +386,12 @@ class PDOPlusPlus
     /**
      * @throws Exception
      */
-    public function startTransaction()
+    public function startTransaction(): void
     {
         $this->setAutocommit(false);
         $this->execTransaction(
-            sql: 'START TRANSACTION;',
-            func_name: 'startTransaction',
+            sql : 'START TRANSACTION;',
+            func_name : 'startTransaction',
         );
     }
 
@@ -399,12 +401,12 @@ class PDOPlusPlus
      * @param bool $value
      * @throws Exception
      */
-    protected function setAutocommit(bool $value)
+    protected function setAutocommit(bool $value): void
     {
         $v = (int)$value;
         $this->execTransaction(
-            sql: "SET AUTOCOMMIT={$v};",
-            func_name: 'setAutocommit',
+            sql : "SET AUTOCOMMIT={$v};",
+            func_name : 'setAutocommit',
         );
     }
 
@@ -414,11 +416,11 @@ class PDOPlusPlus
      * @param bool $enable_autocommit
      * @throws Exception
      */
-    public function commit(bool $enable_autocommit = true)
+    public function commit(bool $enable_autocommit = true): void
     {
         $this->execTransaction(
-            sql: 'COMMIT;',
-            func_name: 'commit',
+            sql : 'COMMIT;',
+            func_name : 'commit',
         );
         if ($enable_autocommit) {
             $this->setAutocommit(true);
@@ -431,7 +433,7 @@ class PDOPlusPlus
      *
      * @throws Exception
      */
-    public function rollback()
+    public function rollback(): void
     {
         if (empty($this->save_points) || (count($this->save_points) === 1)) {
             $this->rollbackAll();
@@ -445,14 +447,14 @@ class PDOPlusPlus
      * @param string $save_point
      * @throws Exception
      */
-    public function rollbackTo(string $save_point)
+    public function rollbackTo(string $save_point): void
     {
         if (in_array($save_point, $this->save_points, true)) {
             // rollback all commands that were executed after the savepoint was established.
             // implicitly destroys all save points that were established after the named savepoint
             $this->execTransaction(
-                sql: "ROLLBACK TO {$save_point};",
-                func_name: 'rollbackTo',
+                sql : "ROLLBACK TO {$save_point};",
+                func_name : 'rollbackTo',
             );
             $pos = array_search($save_point, $this->save_points, true);
             array_splice($this->save_points, $pos);
@@ -464,11 +466,11 @@ class PDOPlusPlus
      *
      * @throws Exception
      */
-    public function rollbackAll()
+    public function rollbackAll(): void
     {
         $this->execTransaction(
-            sql: 'ROLLBACK;',
-            func_name: 'rollback',
+            sql : 'ROLLBACK;',
+            func_name : 'rollback',
         );
         $this->save_points = [];
     }
@@ -479,11 +481,11 @@ class PDOPlusPlus
      * @param string $save_point_name
      * @throws Exception
      */
-    public function createSavePoint(string $save_point_name)
+    public function createSavePoint(string $save_point_name): void
     {
         $this->execTransaction(
-            sql: "SAVEPOINT {$save_point_name};",
-            func_name: 'savePoint',
+            sql : "SAVEPOINT {$save_point_name};",
+            func_name : 'savePoint',
         );
         $this->save_points[] = $save_point_name;
     }
@@ -494,12 +496,12 @@ class PDOPlusPlus
      * @param string $save_point
      * @throws Exception
      */
-    public function release(string $save_point)
+    public function release(string $save_point): void
     {
         if (in_array($save_point, $this->save_points, true)) {
             $this->execTransaction(
-                sql: "RELEASE SAVEPOINT {$save_point};",
-                func_name: 'release',
+                sql : "RELEASE SAVEPOINT {$save_point};",
+                func_name : 'release',
             );
             $pos = array_search($save_point, $this->save_points, true);
             unset($this->save_points[$pos]);
@@ -509,12 +511,12 @@ class PDOPlusPlus
     /**
      * @throws Exception
      */
-    public function releaseAll()
+    public function releaseAll(): void
     {
         foreach ($this->save_points as $save_point) {
             $this->execTransaction(
-                sql: "RELEASE SAVEPOINT {$save_point};",
-                func_name: 'release',
+                sql : "RELEASE SAVEPOINT {$save_point};",
+                func_name : 'release',
             );
         }
         $this->save_points = [];
@@ -523,7 +525,6 @@ class PDOPlusPlus
     /**
      * @param string $sql
      * @param string $func_name
-     * @return void|null
      * @throws Exception
      */
     protected function execTransaction(string $sql, string $func_name)
@@ -542,32 +543,59 @@ class PDOPlusPlus
     //region IN
     /**
      * Plain escaped SQL value
+     * Possible types: int str float double num numeric bool binary
      *
-     * @param string|null $final_injector_type Define and lock the type of the value among: int str float double num numeric bool binary
      * @return AbstractInjector
      * @throws TypeError
      */
-    public function getInjectorIn(?string $final_injector_type = null): AbstractInjector
+    public function getInjectorIn(): AbstractInjector
     {
-        return new class($this->data, $final_injector_type) extends AbstractInjector {
+        return new class($this->data) extends AbstractInjector {
             /**
              * @param mixed $value
-             * @param string $type among: int str float double num numeric bool binary
+             * @param string $type among: int str float bool binary bigint
              * @return string
              * @throws TypeError
              */
             public function __invoke(mixed $value, string $type = 'str'): string
             {
-                $is_scalar = fn(mixed $p): bool => ($p === null) || is_scalar($p) || (is_object($p) && method_exists($p, '__toString'));
+                if (($value === null) || is_scalar($value)) {
+                    $prepend = ($type === 'bigint') ? 'bigint' : '';
+                    $tag = PDOPlusPlus::getTag($prepend);
+                    $this->data['in'][$tag] = [
+                        'value' => $value,
+                        'type' => $type,
+                    ];
 
-                if ( ! $is_scalar($value)) {
-                    throw new TypeError('Null or scalar value expected or class with __toString() implemented');
+                    return $tag;
+                } else {
+                    throw new TypeError('Null or scalar value expected');
                 }
+            }
+        };
+    }
 
-                $tag = PDOPlusPlus::getTag();
-                $this->data['in'][$tag] = [
-                    'value' => $value,
-                    'type' => $this->final_injector_type ?? $type,
+    /**
+     * Plain escaped SQL values passed by reference
+     * Possible types: int str float double num numeric bool binary
+     *
+     * @return AbstractInjector
+     */
+    public function getInjectorInAsRef(): AbstractInjector
+    {
+        return new class($this->data) extends AbstractInjector {
+            /**
+             * @param mixed $value
+             * @param string $type among: int str float bool binary bigint
+             * @return string
+             */
+            public function __invoke(mixed &$value, string $type = 'str'): string
+            {
+                $prepend = ($type === 'bigint') ? 'bigint' : '';
+                $tag = PDOPlusPlus::getTag($prepend);
+                $this->data['in_as_ref'][$tag] = [
+                    'value' => &$value,
+                    'type' => $type,
                 ];
 
                 return $tag;
@@ -577,26 +605,30 @@ class PDOPlusPlus
 
     /**
      * Injector for values using a statement with ->bindValue()
+     * Possible types: int str float double num numeric bool binary
      *
-     * @param string|null $final_injector_type Define and lock the type of the value among: int str float double num numeric bool binary
      * @return AbstractInjector
-     * @throws TypeError
      */
-    public function getInjectorInByVal(?string $final_injector_type = null): AbstractInjector
+    public function getInjectorInByVal(): AbstractInjector
     {
-        return new class($this->data, $final_injector_type) extends AbstractInjector {
+        return new class($this->data) extends AbstractInjector {
             /**
              * @param mixed $value
-             * @param string $type among: int str float double num numeric bool binary
+             * @param string $type among: int str float bool binary bigint
              * @return string
-             * @throws TypeError
              */
             public function __invoke(mixed $value, string $type = 'str'): string
             {
-                $tag = PDOPlusPlus::getTag();
-                $this->data['in_by_val'][$tag] = [
+                if ($type === 'bigint') {
+                    $tag = PDOPlusPlus::getTag(prepend : 'bigint');
+                    $key = 'in';
+                } else {
+                    $tag = PDOPlusPlus::getTag();
+                    $key = 'in_by_val';
+                }
+                $this->data[$key][$tag] = [
                     'value' => $value,
-                    'type' => $this->final_injector_type ?? $type,
+                    'type' => $type,
                 ];
 
                 return $tag;
@@ -607,23 +639,28 @@ class PDOPlusPlus
     /**
      * Injector for referenced values using a statement with ->bindParam()
      *
-     * @param string|null $final_injector_type Define and lock the type of the value among: int str float double num numeric bool binary
      * @return AbstractInjector
      */
-    public function getInjectorInByRef(?string $final_injector_type = null): AbstractInjector
+    public function getInjectorInByRef(): AbstractInjector
     {
-        return new class($this->data, $final_injector_type) extends AbstractInjector {
+        return new class($this->data) extends AbstractInjector {
             /**
              * @param mixed $value
-             * @param string $type among: int str float double num numeric bool binary
+             * @param string $type among: int str float double num numeric bool binary bigint
              * @return string
              */
             public function __invoke(mixed &$value, string $type = 'str'): string
             {
-                $tag = PDOPlusPlus::getTag();
-                $this->data['in_by_ref'][$tag] = [
+                if ($type === 'bigint') {
+                    $tag = PDOPlusPlus::getTag(prepend : 'bigint');
+                    $key = 'in_as_ref';
+                } else {
+                    $tag = PDOPlusPlus::getTag();
+                    $key = 'in_by_ref';
+                }
+                $this->data[$key][$tag] = [
                     'value' => &$value,
-                    'type' => $this->final_injector_type ?? $type,
+                    'type' => $type,
                 ];
 
                 return $tag;
@@ -632,19 +669,43 @@ class PDOPlusPlus
     }
     //endregion IN
 
+    //region INOUT
+    /**
+     * Injector for a plain sql escaped INOUT attribute
+     *
+     * @return AbstractInjector
+     */
+    public function getInjectorInOut(): AbstractInjector
+    {
+        return new class($this->data) extends AbstractInjector {
+            /**
+             * @param mixed $value
+             * @param string $inout_tag ex: '@id'
+             * @param string $type for the IN PARAMETER among: int str float bool binary bigint
+             * @return string
+             */
+            public function __invoke(mixed $value, string $inout_tag, string $type = 'str'): string
+            {
+                $this->data['inout'][$inout_tag] = [
+                    'value' => $value,
+                    'type' => $type,
+                ];
+
+                return $inout_tag;
+            }
+        };
+    }
+    //endregion INOUT
+
     //region OUT
     /**
      * Injector for an OUT attribute
      *
-     * @return object
+     * @return AbstractInjector
      */
     public function getInjectorOut(): object
     {
-        return new class($this->data) {
-            public function __construct(
-                protected array &$data,
-            ) { }
-
+        return new class($this->data) extends AbstractInjector {
             /**
              * @param string $out_tag ex:'@id'
              * @return string
@@ -658,61 +719,7 @@ class PDOPlusPlus
         };
     }
     //endregion OUT
-
-    //region INOUT
-    /**
-     * Injector for a plain sql escaped INOUT attribute
-     *
-     * @param string|null $final_injector_type  Define and lock the type of the value among: int str float double num numeric bool
-     * @return AbstractInjector
-     */
-    public function getInjectorInOut(?string $final_injector_type = null): AbstractInjector
-    {
-        return new class($this->data, $final_injector_type) extends AbstractInjector {
-            /**
-             * @param mixed $value
-             * @param string $inout_tag ex: '@id'
-             * @param string $type for the IN PARAMETER among: int str float double num numeric bool binary
-             * @return string
-             */
-            public function __invoke(mixed $value, string $inout_tag, string $type = 'str'): string
-            {
-                $this->data['inout'][$inout_tag] = [
-                    'value' => $value,
-                    'type' => $this->final_injector_type ?? $type,
-                ];
-
-                return $inout_tag;
-            }
-        };
-    }
-    //endregion INOUT
     //endregion INJECTORS
-
-    /**
-     * @param string $sql
-     * @return string|null lastInsertId() | null on error
-     * @throws Exception
-     */
-    public function insert(string $sql): string|null
-    {
-        try {
-            $this->buildSql($sql);
-            if ($this->useStatement()) {
-                $this->stmt->execute();
-            } else {
-                $this->current_pdo->exec($this->sql);
-            }
-            $new_id = $this->current_pdo->lastInsertId();
-            $this->autoReset();
-
-            return $new_id;
-        } catch (Exception $e) {
-            $this->exceptionInterceptor($e, 'insert');
-
-            return null;
-        }
-    }
 
     //region BOUND COLUMNS
     /**
@@ -740,14 +747,14 @@ class PDOPlusPlus
      */
     protected function bindColumns(bool $execute_stmt): void
     {
-        $bind_cols = function() {
+        $bind_cols = function () {
             foreach ($this->bound_columns as $sql_col => &$var) {
                 $this->stmt->bindColumn(
-                    column: $sql_col,
-                    var: $var[0],
-                    type: self::getPDOType($var[1]),
-                    maxLength: $var[2] ?? 0,
-                    driverOptions: $var[3] ?? null
+                    column : $sql_col,
+                    var : $var[0],
+                    type : self::getPDOType($var[1]),
+                    maxLength : $var[2] ?? 0,
+                    driverOptions : $var[3] ?? null
                 );
             }
         };
@@ -846,12 +853,12 @@ class PDOPlusPlus
     }
 
     /**
-     * @see selectStmt()
-     *
      * @param string $sql
      * @param array $driver_options Others options than scrollable cursor (PDO::ATTR_CURSOR => PDO::CURSOR_SCROLL)
      * @return PDOStatement|null
      * @throws Exception
+     * @see selectStmt()
+     *
      */
     public function selectStmtAsScrollableCursor(string $sql, array $driver_options = []): PDOStatement|null
     {
@@ -869,6 +876,31 @@ class PDOPlusPlus
             return $this->stmt;
         } catch (Exception $e) {
             $this->exceptionInterceptor($e, 'selectStmtAsScrollableCursor');
+
+            return null;
+        }
+    }
+
+    /**
+     * @param string $sql
+     * @return string|null lastInsertId() | null on error
+     * @throws Exception
+     */
+    public function insert(string $sql): string|null
+    {
+        try {
+            $this->buildSql($sql);
+            if ($this->useStatement()) {
+                $this->stmt->execute();
+            } else {
+                $this->current_pdo->exec($this->sql);
+            }
+            $new_id = $this->current_pdo->lastInsertId();
+            $this->autoReset();
+
+            return $new_id;
+        } catch (Exception $e) {
+            $this->exceptionInterceptor($e, 'insert');
 
             return null;
         }
@@ -934,15 +966,12 @@ class PDOPlusPlus
 
             // FOR STORED PROCEDURE: UNIVERSAL SQL SYNTAX : "SET @io_param = value"
             $params = [];
-            $set = fn(string $tag, array $v) =>
-                "SET {$tag} = ".self::getSQLValue(
-                    value: $v['value'],
-                    type: $v['type'],
-                    pdo: $this->current_pdo,
-                );
-
             foreach ($this->getData(self::VAR_INOUT) as $tag => $v) {
-                $params[] = $set($tag, $v);
+                $params[] = "SET {$tag} = ".self::getSQLValue(
+                        value : $v['value'],
+                        type : $v['type'],
+                        pdo : $this->current_pdo,
+                    );
             }
 
             if ( ! empty($params)) {
@@ -1024,6 +1053,7 @@ class PDOPlusPlus
     }
 
     //region BUILDING SQL OR/AND STATEMENT
+
     /**
      * @return bool
      */
@@ -1058,21 +1088,22 @@ class PDOPlusPlus
      */
     protected function buildSql(string $sql, array $prepare_options = []): void
     {
-        if ($this->useStatement()) {
+        $this->sql = $sql;
+        $this->replaceTagsByPlainValues();
+        $this->replaceTagsByPlainRefValues();
 
-            $get_pdo_type = function(&$v): int {
+        if ($this->useStatement()) {
+            $get_pdo_type = function (&$v): int {
                 if ($v['value'] === null) {
                     return self::getPDOType('null');
                 } else {
-                    $this->castValue($v['value'], $v['type']);
+                    $this->castValueByType($v['value'], $v['type']);
 
                     return self::getPDOType($v['type']);
                 }
             };
 
             if ($this->params_already_bound === false) {
-                $this->buildSqlPlainValues($sql);
-
                 // initial binding
                 $this->stmt = $this->current_pdo->prepare($this->sql, $prepare_options);
                 $data_by_val = $this->getData(self::VAR_IN_BY_VAL);
@@ -1087,50 +1118,55 @@ class PDOPlusPlus
                 foreach ($data_by_ref as $tag => &$v) {
                     $pdo_type = $get_pdo_type($v);
                     $this->stmt->bindParam($tag, $v['value'], $pdo_type);
-                    $this->last_bound_type_tags_by_ref[$tag] = $pdo_type;
+                    $this->last_bound_type[$tag] = $pdo_type;
                 }
                 $this->params_already_bound = true;
             } else {
                 $data_by_ref = $this->getData(self::VAR_IN_BY_REF);
                 foreach ($data_by_ref as $tag => &$v) {
                     $pdo_type = $get_pdo_type($v);
-                    // if the types between the current and the previous value are different, then rebind explicitly the tag
-                    $prev_type = $this->last_bound_type_tags_by_ref[$tag];
-                    if ($pdo_type !== $prev_type) {
+                    // if the types between the current and the previous value are different,
+                    // then rebind explicitly the tag especially for null values
+                    if ($pdo_type !== $this->last_bound_type[$tag]) {
                         $this->stmt->bindParam($tag, $v['value'], $pdo_type);
-                        $this->last_bound_type_tags_by_ref[$tag] = $pdo_type;
+                        $this->last_bound_type[$tag] = $pdo_type;
                     }
                 }
             }
-        } else {
-            $this->buildSqlPlainValues($sql);
         }
     }
 
-    /**
-     * @param string $sql
-     * @throws Exception
-     */
-    protected function buildSqlPlainValues(string $sql)
+    protected function replaceTagsByPlainValues(): void
     {
         $this->current_pdo = self::getPdo($this->current_cnx_id);
-
-        // replace internal tags by plain escaped sql values
         $data = $this->getData(self::VAR_IN);
         if ( ! empty($data)) {
-            $replace = fn(string $tag, array $v, string $sql) =>
-                str_replace($tag, (string)self::getSQLValue(
-                    value: $v['value'],
-                    type: $v['type'],
-                    pdo: $this->current_pdo
-                ), $sql
-            );
-
-            foreach ($data as $tag => $v) {
-                $sql = $replace($tag, $v, $sql);
+            foreach ($data as $tag => &$v) {
+                if ( ! isset($v['done'])) {
+                    $this->sql = str_replace(
+                        $tag,
+                        (string)self::getSQLValue($v['value'], $v['type'], $this->current_pdo),
+                        $this->sql
+                    );
+                    $v['done'] = true;
+                }
             }
         }
-        $this->sql = $sql;
+    }
+
+    protected function replaceTagsByPlainRefValues(): void
+    {
+        $this->current_pdo = self::getPdo($this->current_cnx_id);
+        $data = $this->getData(self::VAR_IN_AS_REF);
+        if ( ! empty($data)) {
+            foreach ($data as $tag => &$v) {
+                $this->sql = str_replace(
+                    $tag,
+                    (string)self::getSQLValue($v['value'], $v['type'], $this->current_pdo),
+                    $this->sql
+                );
+            }
+        }
     }
     //endregion BUILDING SQL OR/AND STATEMENT
 
@@ -1163,7 +1199,11 @@ class PDOPlusPlus
 
     protected function autoReset(): void
     {
-        if ($this->auto_reset && empty($this->data[self::VAR_IN_BY_REF]) && ($this->has_failed === false)) {
+        if ($this->auto_reset
+            && empty($this->data[self::VAR_IN_BY_REF])
+            && empty($this->data[self::VAR_IN_AS_REF])
+            && ($this->has_failed === false)
+        ) {
             $this->reset();
         }
     }
@@ -1177,6 +1217,7 @@ class PDOPlusPlus
     {
         $this->data = [
             self::VAR_IN => [],
+            self::VAR_IN_AS_REF => [],
             self::VAR_IN_BY_REF => [],
             self::VAR_IN_BY_VAL => [],
             self::VAR_INOUT => [],
@@ -1187,7 +1228,7 @@ class PDOPlusPlus
         $this->current_pdo = null;
         $this->has_failed = false;
         $this->params_already_bound = false;
-        $this->last_bound_type_tags_by_ref = [];
+        $this->last_bound_type = [];
         $this->bound_columns = [];
         $this->bind_before_execute = false;
     }
@@ -1213,6 +1254,7 @@ class PDOPlusPlus
         }
         $this->throw = false;
     }
+
     /**
      * @return bool Tells if the exception wrapper is callable
      */
@@ -1264,6 +1306,7 @@ class PDOPlusPlus
     {
         return $this->error_from_wrapper;
     }
+
     //endregion EXCEPTION INTERCEPTOR
 
     public function closeCursor(): void
@@ -1284,6 +1327,7 @@ class PDOPlusPlus
     /**
      * Unique tag generator
      * The tag is always unique for the whole current session
+     * A tag prepend with ':' is intercepted by the PDO method ->prepare()
      *
      * @param string $prepend
      * @return string
@@ -1308,7 +1352,7 @@ class PDOPlusPlus
     public static function getTags(array $keys): array
     {
         $tags = [];
-        for ($i = 0, $nb = count($keys) ; $i < $nb ; ++$i) {
+        for ($i = 0, $nb = count($keys); $i < $nb; ++$i) {
             $tags[] = self::getTag();
         }
 
@@ -1317,7 +1361,7 @@ class PDOPlusPlus
 
     /**
      * @param mixed $value
-     * @param string $type among: int str float double num numeric bool
+     * @param string $type among: int str float bool bigint
      * @param PDO $pdo
      * @return bool|int|string plain escaped value
      * @throws Exception
@@ -1328,10 +1372,12 @@ class PDOPlusPlus
             return 'NULL';
         } elseif ($type === 'int') {
             return (int)$value;
+        } elseif ($type === 'bigint') {
+            return (string)$value;
         } elseif ($type === 'bool') {
             return (bool)$value;
-        } elseif (in_array($type, ['float', 'double', 'num', 'numeric'], true)) {
-            return (string)(double)$value;
+        } elseif ($type === 'float') {
+            return (string)(float)$value;
         } else {
             return $pdo->quote((string)$value);
         }
@@ -1340,19 +1386,24 @@ class PDOPlusPlus
     /**
      * By default, everything is a string unless one recognized type
      *
-     * @param mixed $value  Careful: value is passed by reference and will be automatically cast to the right type
-     * @param string $type among: int str float double num numeric bool binary null
+     * @param mixed $value Careful: value is passed by reference and will automatically be cast to the right type
+     * @param string $type among: int str float bool binary bigint null
+     * @throws InvalidArgumentException
      */
-    protected function castValue(mixed &$value, string $type): void
+    protected function castValueByType(mixed &$value, string $type): void
     {
         if ($type === 'null') {
             $value = null;
         } elseif ($type === 'int') {
             $value = (int)$value;
+        } elseif ($type === 'bigint') {
+            // intentionally empty
+            // UNSIGNED: ON x64 FROM 0 TO 18446744073709551615
+            // SIGNED: ON x64 FROM -9223372036854775808 TO 9223372036854775807
         } elseif ($type === 'bool') {
             $value = (bool)$value;
-        } elseif (in_array($type, ['float', 'double', 'num', 'numeric'], true)) {
-            $value = (string)(double)$value;
+        } elseif ($type === 'float') {
+            $value = (string)(float)$value;
         } elseif ($type === 'binary') {
             // intentionally empty
         } else {
@@ -1361,7 +1412,7 @@ class PDOPlusPlus
     }
 
     /**
-     * @param string $user_type among: int str float double num numeric bool binary null
+     * @param string $user_type among: int str float bool binary null bigint
      * @return int
      */
     protected static function getPDOType(string $user_type): int
@@ -1371,7 +1422,8 @@ class PDOPlusPlus
             'bool' => PDO::PARAM_BOOL,
             'null' => PDO::PARAM_NULL,
             'binary' => PDO::PARAM_LOB,
-            default => PDO::PARAM_STR
+            'bigint' => 999,
+            default => PDO::PARAM_STR,
         };
     }
 }

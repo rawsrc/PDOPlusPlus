@@ -1,6 +1,6 @@
 # PDOPlusPlus : a new generation of PDO Wrapper
 
-`2021-11-01` `PHP 8.0+` `v.4.0.0`
+`2022-11-01` `PHP 8.0+` `v.5.0.0`
 
 ## A PHP full object PDO Wrapper in one class
 
@@ -19,10 +19,13 @@ The engine, will automatically escape the values and will let you concentrate on
 - SELECT
 - STORED PROCEDURE
 - TRANSACTIONS (EVEN NESTED ONES)
+- NATIVE SQL BINGINT (OR INT8) SIGNED/UNSIGNED SUPPORT 
 
 For stored procedures, you'll be able to use any `IN`, `OUT` or `INOUT` params.<br>
 `PDOPlusPlus` is also fully compatible with those returning multiple dataset
  at once.
+
+**BE CAREFUL: `PDOPlusPlus` DOESN'T VALIDATE ANY VALUE**
 
 A true Swiss knife for PDO.
 
@@ -42,6 +45,7 @@ To cover all use cases, there's 5 different injectors:
 - `getInjectorIn()`: injected values are directly escaped (plain sql). **THIS IS THE DEFAULT INJECTOR**
 - `getInjectorInByVal()`: injected values are escaped using the `PDOStatement->bindValue()` mechanism
 - `getInjectorInByRef()`: injected values are escaped using the `PDOStatement->bindParam()` mechanism
+- `getInjectorInAsRef()`: values are passed by ref and directly escaped (plain sql)
 - `getInjectorOut()`: for stored procedure with only OUT param
 - `getInjectorInOut()`: for stored procedure with INOUT param, IN param is directly escaped (plain sql)
 
@@ -49,26 +53,21 @@ Please note that by default, `PDOPlusPlus` will escape your values in plain sql.
 If you want to have another behavior, like using a `PDOStatement` or calling
 a stored procedure, then you must use a specific injector.
 
-### CHANGELOG FROM VERSION 3.1
+### CHANGELOG FROM VERSION 4.0
 
-**This version 4.0.x is a major update and breaks the compatibility 
-with the code based on version 3.1**<br>
+**This version 5.0.x is a major update and may slightly break the compatibility 
+with the code based on version 4.x**<br>
 
 NEW FEATURES:
-- Auto-reset
-- Support for binary data
-- Support for bound columns
-- Support for scrollable cursor
-- Better support of transactions
-- Many code improvements 
-- Fully tested
+- Full support of `BIGINT/INT8` data type (`SIGNED/UNSIGNED`)
+- New injector: `getInjectorInAsRef()`: values are passed by ref and directly escaped (plain sql)
+- Remove some aliases for `float` data types: `double`, `num`, `numeric`, only `float` remain available
 
 REMOVED:
-- `getInjectorInOutByVal()`
-- `getInjectorInOutByRef()`
+- Defining the final data type when creating an injector
 
 The test code is now available. All tests are written for another of my projects: 
-[Exacodis, a minimalist test engine for PHP](https://github.com/rawsrc/exacodis) 
+[Exacodis, a minimalist testing engine for PHP](https://github.com/rawsrc/exacodis) 
 
 ### AUTO-RESET FEATURE
 
@@ -92,39 +91,20 @@ You can activate/deactivate this feature using:
 
 ### ABOUT INJECTORS
 
-When you create an injector, you can define and lock the data type of its value.
-The different allowed data types are : int str float double num numeric bool binary
+The different allowed data types are : int str float bool binary bigint
 
 Every injector is invocable with its own parameters.
 - `getInjectorIn(mixed $value, string $type = 'str')`
+- `getInjectorInAsRef(mixed &$value, string $type = 'str')`
 - `getInjectorInByVal(mixed $value, string $type = 'str')`
 - `getInjectorInByRef(mixed &$value, string $type = 'str')`
 - `getInjectorOut(string $out_tag)`
 - `getInjectorInOut(mixed $value, string $inout_tag, string $type = 'str')`
 
-Note that binary data is a type like another. Just internally the engine, 
+Note that binary and bigint data are types like others. Just internally the engine, 
 the process is different. 
 
 Please have a look below how to use them in a SQL context.
-
-#### LOCK THE TYPE OF THE INJECTED VALUE
-
-You can once for all define and lock simultaneously the type of the variable for every injector.
-```php
-$in = $ppp->getInjectorInByVal('int');
-// now all injected values using $in() are considered by the engine as integer even if you try to redefine it on the fly
-$var = $in('123', 'int');
-// is equivalent to:  
-$var = $in('123');  
-// and in that example 'str' is ignored: 
-$var = $in('123', 'str');
-```
-You can also define and lock the type of injector after creating it, only if the 
-final type was not yet defined:
-```php
-$in = $ppp->getInjectorInByVal();
-$in->setFinalInjectorType('int');
-```
 
 ### CONNECTION TO THE DATABASE
 
@@ -180,15 +160,18 @@ CREATE DATABASE db_pdo_plus_plus;
 USE db_pdo_plus_plus;
 CREATE TABLE t_video
 (
- video_id           int auto_increment primary key,
- video_title        varchar(255)         not null,
- video_support      varchar(30)          not null comment 'DVD DIVX BLU-RAY',
- video_multilingual tinyint(1) default 0 not null,
- video_chapter      int                  null,
- video_year         int                  not null,
- video_summary      text                 null,
- video_stock        int        default 0 not null,
- video_img          mediumblob           null,
+ video_id              int auto_increment primary key,
+ video_title           varchar(255)         not null,
+ video_support         varchar(30)          not null comment 'DVD DIVX BLU-RAY',
+ video_multilingual    tinyint(1) default 0 not null,
+ video_chapter         int                  null,
+ video_year            int                  not null,
+ video_summary         text                 null,
+ video_stock           int        default 0 not null,
+ video_img             mediumblob           null,
+ video_bigint_unsigned bigint unsigned      null,
+ video_bigint          bigint               null,
+ 
  constraint t_video_video_titre_index
   unique (video_title)
 );
@@ -197,29 +180,35 @@ CREATE TABLE t_video
 ### SAMPLE DATASET
 ```php
 $data = [[
-    'title'        => "The Lord of the Rings - The Fellowship of the Ring",
-    'support'      => 'BLU-RAY',
-    'multilingual' => true,
-    'chapter'      => 1,
-    'year'         => 2001,
-    'summary'      => null,
-    'stock'        => 10
+    'title'           => "The Lord of the Rings - The Fellowship of the Ring",
+    'support'         => 'BLU-RAY',
+    'multilingual'    => true,
+    'chapter'         => 1,
+    'year'            => 2001,
+    'summary'         => null,
+    'stock'           => 10,
+    'bigint_unsigned' => '18446744073709551600',
+    'bigint_signed'   => -9223372036854775000,
 ], [
-    'title'        => "The Lord of the Rings - The two towers",
-    'support'      => 'BLU-RAY',
-    'multilingual' => true,
-    'chapter'      => 2,
-    'year'         => 2002,
-    'summary'      => null,
-    'stock'        => 0
+    'title'           => "The Lord of the Rings - The two towers",
+    'support'         => 'BLU-RAY',
+    'multilingual'    => true,
+    'chapter'         => 2,
+    'year'            => 2002,
+    'summary'         => null,
+    'stock'           => 0,
+    'bigint_unsigned' => '18446744073709551600',
+    'bigint_signed'   => -9223372036854775000,
 ], [
-    'title'        => "The Lord of the Rings - The return of the King",
-    'support'      => 'DVD',
-    'multilingual' => true,
-    'chapter'      => 3,
-    'year'         => 2003,
-    'summary'      => null,
-    'stock'        => 1
+    'title'           => "The Lord of the Rings - The return of the King",
+    'support'         => 'DVD',
+    'multilingual'    => true,
+    'chapter'         => 3,
+    'year'            => 2003,
+    'summary'         => null,
+    'stock'           => 1,
+    'bigint_unsigned' => '18446744073709551600',
+    'bigint_signed'   => -9223372036854775000,
 ]];
 ```
 ### ADD A RECORD
@@ -231,10 +220,15 @@ include 'PDOPlusPlus.php';
 $ppp = new PDOPlusPlus(); // here the default connection wil be used and the auto-reset is enabled
 $film = $data[0];
 $sql = <<<sql
-INSERT INTO t_video (video_title, video_support, video_multilingual, video_chapter, video_year, video_summary, video_stock)
-     VALUES ({$ppp($film['title'])}, {$ppp($film['support'])}, {$ppp($film['multilingual'], 'bool')},
-             {$ppp($film['chapter'], 'int')}, {$ppp($film['year'], 'int')}, {$ppp($film['summary'])}, 
-             {$ppp($film['stock'], 'int')})
+INSERT INTO t_video (
+    video_title, video_support, video_multilingual, video_chapter, video_year, 
+    video_summary, video_stock, video_bigint_unsigned, video_bigint_signed
+) VALUES (
+    {$ppp($film['title'])}, {$ppp($film['support'])}, {$ppp($film['multilingual'], 'bool')},
+    {$ppp($film['chapter'], 'int')}, {$ppp($film['year'], 'int')}, {$ppp($film['summary'])}, 
+    {$ppp($film['stock'], 'int')}, {$ppp($film['bigint_unsigned'], 'bigint')}, 
+    {$ppp($film['bigint_signed'], 'bigint')}
+)
 sql;
 $new_id = $ppp->insert($sql);   // $new_id = '1'
 ```
@@ -245,10 +239,15 @@ I will use a `PDOStatement` based on values (`->bindValue()`).
 $in = $ppp->getInjectorInByVal();
 $film = $data[1];
 $sql = <<<sql
-INSERT INTO t_video (video_title, video_support, video_multilingual, video_chapter, video_year, video_summary, video_stock)
-     VALUES ({$in($film['title'])}, {$in($film['support'])}, {$in($film['multilingual'], 'bool')},
-             {$in($film['chapter'], 'int')}, {$in($film['year'], 'int')}, {$in($film['summary'])}, 
-             {$in($film['stock'], 'int')})
+INSERT INTO t_video (
+    video_title, video_support, video_multilingual, video_chapter, video_year, 
+    video_summary, video_stock, video_bigint_unsigned, video_bigint_signed
+) VALUES (
+    {$in($film['title'])}, {$in($film['support'])}, {$in($film['multilingual'], 'bool')},
+    {$in($film['chapter'], 'int')}, {$in($film['year'], 'int')}, {$in($film['summary'])}, 
+    {$in($film['stock'], 'int')}, {$in($film['bigint_unsigned'], 'bigint')}, 
+    {$in($film['bigint_signed'], 'bigint')}
+)
 sql;
 $new_id = $ppp->insert($sql);   // $new_id = '2' 
 ```
@@ -261,9 +260,13 @@ $ppp->execute('TRUNCATE TABLE t_video');
 
 $in = $ppp->getInjectorInByRef(); 
 $sql = <<<sql
-INSERT INTO t_video (video_title, video_support, video_multilingual, video_chapter, video_year, video_summary, video_stock)
-     VALUES ({$in($title)}, {$in($support)}, {$in($multilingual, 'bool')}, {$in($chapter, 'int')}, {$in($year, 'int')}, 
-             {$in($summary)}, {$in($stock, 'int')})
+INSERT INTO t_video (
+    video_title, video_support, video_multilingual, video_chapter, video_year, 
+    video_summary, video_stock, video_bigint_unsigned, video_bigint_signed
+) VALUES (
+    {$in($title)}, {$in($support)}, {$in($multilingual, 'bool')}, {$in($chapter, 'int')}, {$in($year, 'int')}, 
+    {$in($summary)}, {$in($stock, 'int')}, {$in($bigint_unsigned, 'bigint')}, {$in($bigint_signed, 'bigint')}
+)
 sql;
 foreach ($data as $film) {
     extract($film); // destructuring the array into components used to populate the references declared just above
@@ -339,6 +342,26 @@ while ($row = $stmt->fetch(PDO::FETCH_BOUND)) {
     // here $video_title and $video_img are available and well defined 
 }
 ```
+
+### BIGINT OR INT8 COLUMN
+
+Since v.5.0.0, the engine is fully compliant with the SQL `BIGINT` or `INT8` (signed or unsigned) data type.
+Internally, the engine will always send a true bigint to the sql engine even if you
+have to manipulate them as strings in the PHP world. This is also true for  
+injectors using the PDO binding mechanism. The engine implements a workaround for these
+specific use cases, so it's transparent for the developer who has just to declare the type
+`bigint` for any injected value.  
+
+Because of integer core limits (`PHP_INT_MIN` and `PHP_INT_MAX`), 
+you can't define a variable like `$int = 18446744073709551600;`,
+the PHP core will automatically cast the value to a float `$int = 1.844674407371E+19`.
+Before `PDOPlusPlus`, unless you consider them as string, it was quite impossible to 
+use them easily in a PHP context whereas it was possible in the SQL world.
+
+Remember, when you select a unsigned bigint column from the database, if the value is 
+strictly greater than `PHP_INT_MAX`, then you will retrieve a string, otherwise a true integer.
+Generally, for signed bigint columns, the SQL limits match the PHP Core limits as usually both are 
+running a x64 architecture.
 
 ### STORED PROCEDURE
 
