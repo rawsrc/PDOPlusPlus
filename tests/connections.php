@@ -1,6 +1,4 @@
-<?php
-
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 /** @var Pilot $pilot */
 /** @var PDOPlusPlus $ppp */
@@ -14,7 +12,7 @@ PDOPlusPlus::addCnxParams(
         'host' => 'localhost',
         'database' => '',
         'user' => 'root',
-        'pwd' => 'PLEASE INSERT THE USER PASSWORD',
+        'pwd' => 'PLEASE INSERT YOUR PWD',
         'port' => '3306',
         'timeout' => '5',
         'pdo_params' => [],
@@ -32,7 +30,7 @@ PDOPlusPlus::addCnxParams(
         'host' => 'localhost',
         'database' => 'db_pdo_plus_plus',
         'user' => 'user_test',
-        'pwd' => 'PLEASE INSERT THE USER PASSWORD',
+        'pwd' => 'PLEASE INSERT YOUR PWD',
         'port' => '3306',
         'timeout' => '5',
         'pdo_params' => [],
@@ -68,7 +66,7 @@ PDOPlusPlus::addCnxParams(
         'host' => 'localhost',
         'database' => 'db_pdo_plus_plus',  // database is defined
         'user' => 'root',
-        'pwd' => 'PLEASE INSERT THE USER PASSWORD',
+        'pwd' => 'PLEASE INSERT YOUR PWD',
         'port' => '3306',
         'timeout' => '5',
         'pdo_params' => [],
@@ -86,7 +84,7 @@ PDOPlusPlus::addCnxParams(
         'host' => 'localhost',
         'database' => 'unknown_database',
         'user' => 'root',
-        'pwd' => 'PLEASE INSERT THE USER PASSWORD',
+        'pwd' => 'PLEASE INSERT YOUR PWD',
         'port' => '3306',
         'timeout' => '5',
         'pdo_params' => [],

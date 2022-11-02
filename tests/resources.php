@@ -1,6 +1,4 @@
-<?php
-
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 use Exacodis\Pilot;
 use rawsrc\PDOPlusPlus\InjectorInByRef;
@@ -11,33 +9,39 @@ use rawsrc\PDOPlusPlus\PDOPlusPlus;
 
 //region SETUP TEST DATA
 $pilot->addResource('film1', [
-    'title'        => "The Lord of the Rings - The Fellowship of the Ring",
-    'support'      => 'BLU-RAY',
-    'multilingual' => true,
-    'chapter'      => 1,
-    'year'         => 2001,
-    'summary'      => null,
-    'stock'        => 10
+    'title'           => "The Lord of the Rings - The Fellowship of the Ring",
+    'support'         => 'BLU-RAY',
+    'multilingual'    => true,
+    'chapter'         => 1,
+    'year'            => 2001,
+    'summary'         => null,
+    'stock'           => 10,
+    'bigint_unsigned' => '18446744073709551600',
+    'bigint_signed'   => '-9223372036854775000',
 ]);
 
 $pilot->addResource('film2', [
-    'title'        => "The Lord of the Rings - The two towers",
-    'support'      => 'BLU-RAY',
-    'multilingual' => true,
-    'chapter'      => 2,
-    'year'         => 2002,
-    'summary'      => null,
-    'stock'        => 0
+    'title'           => "The Lord of the Rings - The two towers",
+    'support'         => 'BLU-RAY',
+    'multilingual'    => true,
+    'chapter'         => 2,
+    'year'            => 2002,
+    'summary'         => null,
+    'stock'           => 0,
+    'bigint_unsigned' => '18446744073709551600',
+    'bigint_signed'   => '-9223372036854775000',
 ]);
 
 $pilot->addResource('film3', [
-    'title'        => "The Lord of the Rings - The return of the King",
-    'support'      => 'DVD',
-    'multilingual' => true,
-    'chapter'      => 3,
-    'year'         => 2003,
-    'summary'      => null,
-    'stock'        => 1
+    'title'           => "The Lord of the Rings - The return of the King",
+    'support'         => 'DVD',
+    'multilingual'    => true,
+    'chapter'         => 3,
+    'year'            => 2003,
+    'summary'         => null,
+    'stock'           => 1,
+    'bigint_unsigned' => '18446744073709551600',
+    'bigint_signed'   => '-9223372036854775000',
 ]);
 
 $pilot->addResource('films', [
@@ -47,35 +51,79 @@ $pilot->addResource('films', [
 ]);
 
 $pilot->addResource('db_films', [[
-    'video_id'           => 1,
-    'video_title'        => "The Lord of the Rings - The Fellowship of the Ring",
-    'video_support'      => 'BLU-RAY',
-    'video_multilingual' => 1,
-    'video_chapter'      => 1,
-    'video_year'         => 2001,
-    'video_summary'      => null,
-    'video_stock'        => 10,
-    'video_img'          => null
+    'video_id'              => 1,
+    'video_title'           => "The Lord of the Rings - The Fellowship of the Ring",
+    'video_support'         => 'BLU-RAY',
+    'video_multilingual'    => 1,
+    'video_chapter'         => 1,
+    'video_year'            => 2001,
+    'video_summary'         => null,
+    'video_stock'           => 10,
+    'video_img'             => null,
+    'video_bigint_unsigned' => null,
+    'video_bigint'          => null,
 ], [
-    'video_id'           => 2,
-    'video_title'        => "The Lord of the Rings - The two towers",
-    'video_support'      => 'BLU-RAY',
-    'video_multilingual' => 1,
-    'video_chapter'      => 2,
-    'video_year'         => 2002,
-    'video_summary'      => null,
-    'video_stock'        => 0,
-    'video_img'          => null
+    'video_id'              => 2,
+    'video_title'           => "The Lord of the Rings - The two towers",
+    'video_support'         => 'BLU-RAY',
+    'video_multilingual'    => 1,
+    'video_chapter'         => 2,
+    'video_year'            => 2002,
+    'video_summary'         => null,
+    'video_stock'           => 0,
+    'video_img'             => null,
+    'video_bigint_unsigned' => null,
+    'video_bigint'          => null,
 ], [
-    'video_id'           => 3,
-    'video_title'        => "The Lord of the Rings - The return of the King",
-    'video_support'      => 'DVD',
-    'video_multilingual' => 1,
-    'video_chapter'      => 3,
-    'video_year'         => 2003,
-    'video_summary'      => null,
-    'video_stock'        => 1,
-    'video_img'          => null
+    'video_id'              => 3,
+    'video_title'           => "The Lord of the Rings - The return of the King",
+    'video_support'         => 'DVD',
+    'video_multilingual'    => 1,
+    'video_chapter'         => 3,
+    'video_year'            => 2003,
+    'video_summary'         => null,
+    'video_stock'           => 1,
+    'video_img'             => null,
+    'video_bigint_unsigned' => null,
+    'video_bigint'          => null,
+]]);
+
+$pilot->addResource('db_films_bigint', [[
+    'video_id'              => 1,
+    'video_title'           => "The Lord of the Rings - The Fellowship of the Ring",
+    'video_support'         => 'BLU-RAY',
+    'video_multilingual'    => 1,
+    'video_chapter'         => 1,
+    'video_year'            => 2001,
+    'video_summary'         => null,
+    'video_stock'           => 10,
+    'video_img'             => null,
+    'video_bigint_unsigned' => '18446744073709551600',
+    'video_bigint'          => '-9223372036854775000',
+], [
+    'video_id'              => 2,
+    'video_title'           => "The Lord of the Rings - The two towers",
+    'video_support'         => 'BLU-RAY',
+    'video_multilingual'    => 1,
+    'video_chapter'         => 2,
+    'video_year'            => 2002,
+    'video_summary'         => null,
+    'video_stock'           => 0,
+    'video_img'             => null,
+    'video_bigint_unsigned' => '18446744073709551600',
+    'video_bigint'          => '-9223372036854775000',
+], [
+    'video_id'              => 3,
+    'video_title'           => "The Lord of the Rings - The return of the King",
+    'video_support'         => 'DVD',
+    'video_multilingual'    => 1,
+    'video_chapter'         => 3,
+    'video_year'            => 2003,
+    'video_summary'         => null,
+    'video_stock'           => 1,
+    'video_img'             => null,
+    'video_bigint_unsigned' => '18446744073709551600',
+    'video_bigint'          => '-9223372036854775000',
 ]]);
 //endregion SETUP TEST DATA
 

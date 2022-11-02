@@ -1,149 +1,157 @@
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EXACODIS REPORT</title>
-  <style>
-    * {
-        font-family: "Courier New";
-    }
-    table, th, td {
-        border: 1px solid black;
-        border-collapse: collapse;
-        padding: 4px;
-    }
-    .failed {
-        background-color: yellow;
-    }
+<html lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EXACODIS REPORT</title>
+<style>
+* {
+  font-family: "Courier New";
+}
+table, th, td {
+  border: 1px solid black;
+  border-collapse: collapse;
+  padding: 4px;
+}
+.failed {
+  background-color: yellow;
+}
 </style>
 </head>
 <body>
-<h2>EXACODIS REPORT<br>2021-11-02 13:29:23
-  <br>---
-  <br>Project: PDOPlusPlus - A PHP PDO Wrapper
-  <br>---
-  <br>111 runs &rArr; 111 passed + 0 failed
-  &hArr; 100 % passed + 0 % failed
-  <br>185 assertions &rArr; 185 passed + 0 failed
-  &hArr; 100 % passed + 0 % failed
-  <br>---
-  <br>Global test code evaluation: <strong>PASSED</strong><br>in 537 ms &hArr; 00:00:00
-</h2>
-<table>
-  <tbody><tr><td colspan="4">Run: connections_001 - PASSED - 2 ms -
-    1 assertion<br>Open a PDO connection: main user without database selected</td></tr><tr><td colspan="4">Run: connections_002 - PASSED - 0 ms -
-    1 assertion<br>Open a PDO connection: main user with database selected</td></tr><tr><td colspan="4">Run: connections_003 - PASSED - 1 ms -
-    1 assertion<br>Try to open a PDO connection with bad credentials</td></tr><tr><td colspan="4">Run: connections_004 - PASSED - 0 ms -
-    1 assertion<br>Try to open a PDO connection with the main user and an unknown database</td></tr><tr><td colspan="4">Run: main_001 - PASSED - 37 ms -
-    1 assertion<br>Drop DB + create DB and TABLE using the default connection</td></tr><tr><td colspan="4">Run: main_002 - PASSED - 32 ms -
-    1 assertion<br>Drop DB + create DB and TABLE using a named connection</td></tr><tr><td colspan="4">Run: main_005 - PASSED - 0 ms -
-    1 assertion<br>Try to drop DB + create DB and TABLE using an unknown connection</td></tr><tr><td colspan="4">Run: insert_001 - PASSED - 2 ms -
-    2 assertions<br>Insert one record using plain SQL, without binary data</td></tr><tr><td colspan="4">Run: insert_002 - PASSED - 1 ms -
-    2 assertions<br>Insert one record using PDOStatement-&gt;bindValue(), without binary data</td></tr><tr><td colspan="4">Run: insert_003 - PASSED - 39 ms -
-    1 assertion<br>Truncate the table</td></tr><tr><td colspan="4">Run: insert_004 - PASSED - 10 ms -
-    3 assertions<br>Insert all records using PDOStatement-&gt;bindParam(), without binary data</td></tr><tr><td colspan="4">Run: insert_005 - PASSED - 32 ms -
-    1 assertion<br>Truncate the table</td></tr><tr><td colspan="4">Run: insert_006 - PASSED - 5 ms -
-    3 assertions<br>Insert all records using plain SQL, without binary data</td></tr><tr><td colspan="4">Run: insert_007 - PASSED - 21 ms -
-    1 assertion<br>Truncate the table</td></tr><tr><td colspan="4">Run: insert_008 - PASSED - 1 ms -
-    2 assertions<br>Insert all records using PDOStatement-&gt;bindValue() (loop), without binary data</td></tr><tr><td colspan="4">Run: insert_009 - PASSED - 2 ms -
-    2 assertions<br>Insert all records using PDOStatement-&gt;bindValue() (loop), without binary data</td></tr><tr><td colspan="4">Run: insert_010 - PASSED - 3 ms -
-    2 assertions<br>Insert all records using PDOStatement-&gt;bindValue() (loop), without binary data</td></tr><tr><td colspan="4">Run: select_001 - PASSED - 0 ms -
-    3 assertions<br>Select all blu-rays using plain sql</td></tr><tr><td colspan="4">Run: select_002 - PASSED - 0 ms -
-    2 assertions<br>Select all blu-rays using -&gt;bindValue()</td></tr><tr><td colspan="4">Run: select_003 - PASSED - 0 ms -
-    2 assertions<br>Select using generic char, LIKE %Lord%</td></tr><tr><td colspan="4">Run: auto_reset_001 - PASSED - 21 ms -
-    1 assertion<br>Truncate the table</td></tr><tr><td colspan="4">Run: auto_reset_002 - PASSED - 0 ms -
-    1 assertion<br>Disabling the auto-reset feature</td></tr><tr><td colspan="4">Run: auto_reset_003 - PASSED - 1 ms -
-    2 assertions<br>Auto-reset disabled, table is empty, insert first film using PDOStatement-&gt;bindValue() (7 fields), without binary data</td></tr><tr><td colspan="4">Run: auto_reset_004 - PASSED - 1 ms -
-    1 assertion<br>Auto-reset disabled, try to insert second film using PDOStatement-&gt;bindValue() (7 fields), without binary data</td></tr><tr><td colspan="4">Run: auto_reset_005 - PASSED - 0 ms -
-    1 assertion<br>Count the number of active tokens inside the instance, should be (7 first record + 7 second record)</td></tr><tr><td colspan="4">Run: auto_reset_006 - PASSED - 5 ms -
-    2 assertions<br>Auto-reset disabled, after resetting manually the instance, try to insert second film using
-    PDOStatement-&gt;bindValue() (7 fields), without binary data</td></tr><tr><td colspan="4">Run: auto_reset_007 - PASSED - 22 ms -
-    1 assertion<br>Truncate the table</td></tr><tr><td colspan="4">Run: auto_reset_008 - PASSED - 0 ms -
-    1 assertion<br>Enabling the auto-reset feature</td></tr><tr><td colspan="4">Run: auto_reset_009 - PASSED - 1 ms -
-    2 assertions<br>Auto-reset enabled, table is empty, insert first film using PDOStatement-&gt;bindValue() (7 fields), without binary data</td></tr><tr><td colspan="4">Run: auto_reset_010 - PASSED - 1 ms -
-    2 assertions<br>Auto-reset enabled, try to insert second film using PDOStatement-&gt;bindValue() (7 fields), without binary data</td></tr><tr><td colspan="4">Run: auto_reset_011 - PASSED - 0 ms -
-    1 assertion<br>Count the number of active tokens inside the instance, should be 0, automatically reset after the call</td></tr><tr><td colspan="4">Run: auto_reset_012 - PASSED - 24 ms -
-    1 assertion<br>Truncate the table</td></tr><tr><td colspan="4">Run: auto_reset_013 - PASSED - 1 ms -
-    2 assertions<br>Insert the first record using PDOStatement-&gt;bindParam(), without binary data</td></tr><tr><td colspan="4">Run: auto_reset_014 - PASSED - 0 ms -
-    1 assertion<br>Count the number of active tokens inside the instance, should be 7, because there&#039;s by ref vars</td></tr><tr><td colspan="4">Run: auto_reset_015 - PASSED - 1 ms -
-    2 assertions<br>Insert the second record using PDOStatement-&gt;bindParam(), without binary data</td></tr><tr><td colspan="4">Run: auto_reset_016 - PASSED - 0 ms -
-    1 assertion<br>Count the number of active tokens inside the instance, should be 7, because there&#039;s by ref vars</td></tr><tr><td colspan="4">Run: auto_reset_017 - PASSED - 5 ms -
-    1 assertion<br>Try to truncate the table with active tokens in the instance</td></tr><tr><td colspan="4">Run: auto_reset_018 - PASSED - 21 ms -
-    1 assertion<br>Truncate the table</td></tr><tr><td colspan="4">Run: auto_reset_019 - PASSED - 1 ms -
-    2 assertions<br>Auto-reset enabled, table is empty, insert first film using PDOStatement-&gt;bindValue() (7 fields), without binary data</td></tr><tr><td colspan="4">Run: auto_reset_020 - PASSED - 0 ms -
-    1 assertion<br>Count the number of active tokens inside the instance, should be 0</td></tr><tr><td colspan="4">Run: auto_reset_021 - PASSED - 1 ms -
-    1 assertion<br>Auto-reset enabled, try to insert the first film again using PDOStatement-&gt;bindValue(), without binary data,
-    PDOException raised</td></tr><tr><td colspan="4">Run: auto_reset_022 - PASSED - 0 ms -
-    1 assertion<br>Count the number of active tokens inside the instance, should be 7, because of previous exception</td></tr><tr><td colspan="4">Run: auto_reset_023 - PASSED - 24 ms -
-    1 assertion<br>Truncate the table</td></tr><tr><td colspan="4">Run: transaction_001 - PASSED - 21 ms -
-    1 assertion<br>Truncate the table</td></tr><tr><td colspan="4">Run: transaction_002 - PASSED - 0 ms -
-    1 assertion<br>Start a transaction</td></tr><tr><td colspan="4">Run: transaction_003 - PASSED - 0 ms -
-    2 assertions<br>Insert one record using plain SQL, without binary data</td></tr><tr><td colspan="4">Run: transaction_004 - PASSED - 0 ms -
-    2 assertions<br>Not committed yet - But same connection, select returns one record</td></tr><tr><td colspan="4">Run: transaction_005 - PASSED - 0 ms -
-    2 assertions<br>Previous connection is not committed - For another connection select is empty</td></tr><tr><td colspan="4">Run: transaction_006 - PASSED - 1 ms -
-    1 assertion<br>Commit</td></tr><tr><td colspan="4">Run: transaction_007 - PASSED - 0 ms -
-    2 assertions<br>Previous connection is committed - For another connection select returns one record</td></tr><tr><td colspan="4">Run: transaction_008 - PASSED - 21 ms -
-    1 assertion<br>Truncate the table</td></tr><tr><td colspan="4">Run: transaction_009 - PASSED - 0 ms -
-    1 assertion<br>Start a transaction</td></tr><tr><td colspan="4">Run: transaction_010 - PASSED - 0 ms -
-    2 assertions<br>Insert first film, without binary data</td></tr><tr><td colspan="4">Run: transaction_011 - PASSED - 0 ms -
-    2 assertions<br>Insert second film, without binary data</td></tr><tr><td colspan="4">Run: transaction_012 - PASSED - 5 ms -
-    1 assertion<br>ROLLBACK all statements</td></tr><tr><td colspan="4">Run: transaction_013 - PASSED - 0 ms -
-    1 assertion<br>Commit</td></tr><tr><td colspan="4">Run: transaction_014 - PASSED - 0 ms -
-    2 assertions<br>Transaction is rollback - select is empty</td></tr><tr><td colspan="4">Run: transaction_015 - PASSED - 0 ms -
-    1 assertion<br>Start a transaction</td></tr><tr><td colspan="4">Run: transaction_016 - PASSED - 0 ms -
-    1 assertion<br>Insert first film, without binary data</td></tr><tr><td colspan="4">Run: transaction_017 - PASSED - 0 ms -
-    1 assertion<br>Transaction is started, create a first savepoint (first)</td></tr><tr><td colspan="4">Run: transaction_018 - PASSED - 0 ms -
-    1 assertion<br>Insert second film, without binary data</td></tr><tr><td colspan="4">Run: transaction_019 - PASSED - 0 ms -
-    1 assertion<br>Transaction is started, create a second savepoint (second)</td></tr><tr><td colspan="4">Run: transaction_020 - PASSED - 0 ms -
-    1 assertion<br>Insert third film, without binary data</td></tr><tr><td colspan="4">Run: transaction_021 - PASSED - 0 ms -
-    1 assertion<br>Rollback to the first savepoint</td></tr><tr><td colspan="4">Run: transaction_022 - PASSED - 1 ms -
-    1 assertion<br>Commit</td></tr><tr><td colspan="4">Run: transaction_023 - PASSED - 0 ms -
-    2 assertions<br>Committed after rolling back to the first savepoint, only one record in the database</td></tr><tr><td colspan="4">Run: transaction_024 - PASSED - 21 ms -
-    1 assertion<br>Truncate the table</td></tr><tr><td colspan="4">Run: transaction_025 - PASSED - 0 ms -
-    1 assertion<br>Start a transaction</td></tr><tr><td colspan="4">Run: transaction_026 - PASSED - 0 ms -
-    1 assertion<br>Insert first film, without binary data</td></tr><tr><td colspan="4">Run: transaction_027 - PASSED - 0 ms -
-    1 assertion<br>Transaction is started, create a first savepoint (first)</td></tr><tr><td colspan="4">Run: transaction_028 - PASSED - 0 ms -
-    1 assertion<br>Insert second film, without binary data</td></tr><tr><td colspan="4">Run: transaction_029 - PASSED - 0 ms -
-    1 assertion<br>Transaction is started, create a second savepoint (second)</td></tr><tr><td colspan="4">Run: transaction_030 - PASSED - 0 ms -
-    1 assertion<br>Insert third film, without binary data</td></tr><tr><td colspan="4">Run: transaction_031 - PASSED - 2 ms -
-    1 assertion<br>Rollback the last statement</td></tr><tr><td colspan="4">Run: transaction_032 - PASSED - 1 ms -
-    1 assertion<br>Commit</td></tr><tr><td colspan="4">Run: transaction_033 - PASSED - 0 ms -
-    2 assertions<br>Committed after rolling back to the first savepoint, two records in the database</td></tr><tr><td colspan="4">Run: binary_001 - PASSED - 20 ms -
-    1 assertion<br>Truncate the table</td></tr><tr><td colspan="4">Run: binary_002 - PASSED - 2 ms -
-    2 assertions<br>Insert the first movie using plain sql with binary data</td></tr><tr><td colspan="4">Run: binary_003 - PASSED - 0 ms -
-    2 assertions<br>Read binary from table and compare to the original file</td></tr><tr><td colspan="4">Run: binary_004 - PASSED - 22 ms -
-    1 assertion<br>Truncate the table</td></tr><tr><td colspan="4">Run: binary_005 - PASSED - 2 ms -
-    2 assertions<br>Insert the first movie using plain sql and bound parameter for binary data</td></tr><tr><td colspan="4">Run: binary_006 - PASSED - 0 ms -
-    2 assertions<br>Read binary from table and compare to the original file</td></tr><tr><td colspan="4">Run: binary_007 - PASSED - 0 ms -
-    3 assertions<br>Select using bound columns</td></tr><tr><td colspan="4">Run: stored_procedure_001 - PASSED - 20 ms -
-    1 assertion<br>Truncate the table</td></tr><tr><td colspan="4">Run: stored_procedure_002 - PASSED - 6 ms -
-    2 assertions<br>Insert all films, without binary data</td></tr><tr><td colspan="4">Run: stored_procedure_003 - PASSED - 3 ms -
-    1 assertion<br>Create a stored procedure that returns one rowset</td></tr><tr><td colspan="4">Run: stored_procedure_004 - PASSED - 0 ms -
-    2 assertions<br>Call SP that returns one rowset (all films, 3 records)</td></tr><tr><td colspan="4">Run: stored_procedure_005 - PASSED - 2 ms -
-    1 assertion<br>Create a stored procedure that returns two rowset</td></tr><tr><td colspan="4">Run: stored_procedure_006 - PASSED - 0 ms -
-    4 assertions<br>Call SP that returns two rowsets (blu-rays + dvd)</td></tr><tr><td colspan="4">Run: stored_procedure_007 - PASSED - 2 ms -
-    1 assertion<br>Create a stored procedure with one in parameter</td></tr><tr><td colspan="4">Run: stored_procedure_008 - PASSED - 0 ms -
-    3 assertions<br>Call SP with one in parameter: all dvds, plain sql escape</td></tr><tr><td colspan="4">Run: stored_procedure_009 - PASSED - 0 ms -
-    3 assertions<br>Call SP with one in parameter: all blu-rays, using PDOStatement-&gt;bindValue()</td></tr><tr><td colspan="4">Run: stored_procedure_010 - PASSED - 0 ms -
-    3 assertions<br>Call SP with one in parameter: all blu-rays, using PDOStatement-&gt;bindRef()</td></tr><tr><td colspan="4">Run: stored_procedure_011 - PASSED - 2 ms -
-    1 assertion<br>Create a stored procedure with two in parameter (support and year)</td></tr><tr><td colspan="4">Run: stored_procedure_012 - PASSED - 0 ms -
-    3 assertions<br>Call SP with two in parameter: all dvds, year 2001, plain sql escape</td></tr><tr><td colspan="4">Run: stored_procedure_013 - PASSED - 0 ms -
-    3 assertions<br>Call SP with two in parameter: all blu-rays, year 2002, using PDOStatement-&gt;bindValue()</td></tr><tr><td colspan="4">Run: stored_procedure_014 - PASSED - 0 ms -
-    3 assertions<br>Call SP with two in parameter: all blu-rays, year 2001, using PDOStatement-&gt;bindRef()</td></tr><tr><td colspan="4">Run: stored_procedure_015 - PASSED - 2 ms -
-    1 assertion<br>Create a stored procedure with one out parameter</td></tr><tr><td colspan="4">Run: stored_procedure_016 - PASSED - 1 ms -
-    4 assertions<br>Call SP with one out parameter</td></tr><tr><td colspan="4">Run: stored_procedure_017 - PASSED - 2 ms -
-    1 assertion<br>Create a stored procedure with two out parameters</td></tr><tr><td colspan="4">Run: stored_procedure_018 - PASSED - 0 ms -
-    5 assertions<br>Call SP with two out parameters</td></tr><tr><td colspan="4">Run: stored_procedure_019 - PASSED - 2 ms -
-    1 assertion<br>Create a stored procedure with a rowset and two out parameters</td></tr><tr><td colspan="4">Run: stored_procedure_020 - PASSED - 0 ms -
-    7 assertions<br>Call SP with a rowset and two out parameters</td></tr><tr><td colspan="4">Run: stored_procedure_021 - PASSED - 2 ms -
-    1 assertion<br>Create a stored procedure with a rowset and one inout parameter and two out parameters</td></tr><tr><td colspan="4">Run: stored_procedure_022 - PASSED - 0 ms -
-    6 assertions<br>Call SP with a rowset and two out parameters</td></tr><tr><td colspan="4">Run: update_001 - PASSED - 20 ms -
-    1 assertion<br>Truncate the table</td></tr><tr><td colspan="4">Run: update_002 - PASSED - 7 ms -
-    2 assertions<br>Insert all films, without binary data</td></tr><tr><td colspan="4">Run: update_003 - PASSED - 2 ms -
-    2 assertions<br>Update using plain sql</td></tr><tr><td colspan="4">Run: delete_001 - PASSED - 20 ms -
-    1 assertion<br>Truncate the table</td></tr><tr><td colspan="4">Run: delete_002 - PASSED - 5 ms -
-    2 assertions<br>Insert all films, without binary data</td></tr><tr><td colspan="4">Run: delete_003 - PASSED - 2 ms -
-    2 assertions<br>Delete all blu-rays using plain sql</td></tr>    </tbody>
-</table>
-</body>
-</html>
+  <h2>EXACODIS REPORT<br>2022-11-02 08:25:35
+      <br>---
+      <br>Project: PDOPlusPlus - A PHP PDO Wrapper
+      <br>---
+      <br>119 runs ⇒ 119 passed + 0 failed 
+      ⇔ 100 % passed + 0 % failed 
+      <br>202 assertions ⇒ 202 passed + 0 failed 
+      ⇔ 100 % passed + 0 % failed
+      <br>---
+      <br>Global test code evaluation: <strong>PASSED</strong><br>in 627 ms ⇔ 00:00:00
+  </h2>
+  <table>
+    <tbody><tr><td colspan="4">Run: connections_001 - PASSED - 11 ms - 
+1 assertion<br>Open a PDO connection: main user without database selected</td></tr><tr><td colspan="4">Run: connections_002 - PASSED - 0 ms - 
+1 assertion<br>Open a PDO connection: main user with database selected</td></tr><tr><td colspan="4">Run: connections_003 - PASSED - 1 ms - 
+1 assertion<br>Try to open a PDO connection with bad credentials</td></tr><tr><td colspan="4">Run: connections_004 - PASSED - 0 ms - 
+1 assertion<br>Try to open a PDO connection with the main user and an unknown database</td></tr><tr><td colspan="4">Run: main_001 - PASSED - 36 ms - 
+1 assertion<br>Drop DB + create DB and TABLE using the default connection</td></tr><tr><td colspan="4">Run: main_002 - PASSED - 30 ms - 
+1 assertion<br>Drop DB + create DB and TABLE using a named connection</td></tr><tr><td colspan="4">Run: main_005 - PASSED - 0 ms - 
+1 assertion<br>Try to drop DB + create DB and TABLE using an unknown connection</td></tr><tr><td colspan="4">Run: insert_001 - PASSED - 2 ms - 
+2 assertions<br>Insert one record using plain SQL, without binary data and without bigint</td></tr><tr><td colspan="4">Run: insert_002 - PASSED - 1 ms - 
+2 assertions<br>Insert one record using PDOStatement-&gt;bindValue(), without binary data and without bigint</td></tr><tr><td colspan="4">Run: insert_003 - PASSED - 41 ms - 
+1 assertion<br>Truncate the table</td></tr><tr><td colspan="4">Run: insert_004 - PASSED - 14 ms - 
+3 assertions<br>Insert all records using PDOStatement-&gt;bindParam(), without binary data and without bigint</td></tr><tr><td colspan="4">Run: insert_005 - PASSED - 22 ms - 
+1 assertion<br>Truncate the table</td></tr><tr><td colspan="4">Run: insert_006 - PASSED - 18 ms - 
+3 assertions<br>Insert all records using plain SQL, without binary data and without bigint</td></tr><tr><td colspan="4">Run: insert_007 - PASSED - 23 ms - 
+1 assertion<br>Truncate the table</td></tr><tr><td colspan="4">Run: insert_008 - PASSED - 1 ms - 
+2 assertions<br>Insert all records using PDOStatement-&gt;bindValue() (loop), without binary data and without bigint</td></tr><tr><td colspan="4">Run: insert_009 - PASSED - 1 ms - 
+2 assertions<br>Insert all records using PDOStatement-&gt;bindValue() (loop), without binary data and without bigint</td></tr><tr><td colspan="4">Run: insert_010 - PASSED - 6 ms - 
+2 assertions<br>Insert all records using PDOStatement-&gt;bindValue() (loop), without binary data and without bigint</td></tr><tr><td colspan="4">Run: select_001 - PASSED - 0 ms - 
+3 assertions<br>Select all blu-rays using plain sql</td></tr><tr><td colspan="4">Run: select_002 - PASSED - 0 ms - 
+2 assertions<br>Select all blu-rays using -&gt;bindValue()</td></tr><tr><td colspan="4">Run: select_003 - PASSED - 0 ms - 
+2 assertions<br>Select using generic char, LIKE %Lord%</td></tr><tr><td colspan="4">Run: auto_reset_001 - PASSED - 22 ms - 
+1 assertion<br>Truncate the table</td></tr><tr><td colspan="4">Run: auto_reset_002 - PASSED - 0 ms - 
+1 assertion<br>Disabling the auto-reset feature</td></tr><tr><td colspan="4">Run: auto_reset_003 - PASSED - 2 ms - 
+2 assertions<br>Auto-reset disabled, table is empty, insert first film using PDOStatement-&gt;bindValue() (7 fields), without binary data</td></tr><tr><td colspan="4">Run: auto_reset_004 - PASSED - 1 ms - 
+1 assertion<br>Auto-reset disabled, try to insert second film using PDOStatement-&gt;bindValue() (7 fields), without binary data</td></tr><tr><td colspan="4">Run: auto_reset_005 - PASSED - 0 ms - 
+1 assertion<br>Count the number of active tokens inside the instance, should be (7 first record + 7 second record)</td></tr><tr><td colspan="4">Run: auto_reset_006 - PASSED - 2 ms - 
+2 assertions<br>Auto-reset disabled, after resetting manually the instance, try to insert second film using 
+                  PDOStatement-&gt;bindValue() (7 fields), without binary data</td></tr><tr><td colspan="4">Run: auto_reset_007 - PASSED - 22 ms - 
+1 assertion<br>Truncate the table</td></tr><tr><td colspan="4">Run: auto_reset_008 - PASSED - 0 ms - 
+1 assertion<br>Enabling the auto-reset feature</td></tr><tr><td colspan="4">Run: auto_reset_009 - PASSED - 1 ms - 
+2 assertions<br>Auto-reset enabled, table is empty, insert first film using PDOStatement-&gt;bindValue() (7 fields), without binary data</td></tr><tr><td colspan="4">Run: auto_reset_010 - PASSED - 1 ms - 
+2 assertions<br>Auto-reset enabled, try to insert second film using PDOStatement-&gt;bindValue() (7 fields), without binary data</td></tr><tr><td colspan="4">Run: auto_reset_011 - PASSED - 0 ms - 
+1 assertion<br>Count the number of active tokens inside the instance, should be 0, automatically reset after the call</td></tr><tr><td colspan="4">Run: auto_reset_012 - PASSED - 24 ms - 
+1 assertion<br>Truncate the table</td></tr><tr><td colspan="4">Run: auto_reset_013 - PASSED - 1 ms - 
+2 assertions<br>Insert the first record using PDOStatement-&gt;bindParam(), without binary data</td></tr><tr><td colspan="4">Run: auto_reset_014 - PASSED - 0 ms - 
+1 assertion<br>Count the number of active tokens inside the instance, should be 7, because there's by ref vars</td></tr><tr><td colspan="4">Run: auto_reset_015 - PASSED - 1 ms - 
+2 assertions<br>Insert the second record using PDOStatement-&gt;bindParam(), without binary data</td></tr><tr><td colspan="4">Run: auto_reset_016 - PASSED - 0 ms - 
+1 assertion<br>Count the number of active tokens inside the instance, should be 7, because there's by ref vars</td></tr><tr><td colspan="4">Run: auto_reset_017 - PASSED - 4 ms - 
+1 assertion<br>Try to truncate the table with active tokens in the instance</td></tr><tr><td colspan="4">Run: auto_reset_018 - PASSED - 20 ms - 
+1 assertion<br>Truncate the table</td></tr><tr><td colspan="4">Run: auto_reset_019 - PASSED - 1 ms - 
+2 assertions<br>Auto-reset enabled, table is empty, insert first film using PDOStatement-&gt;bindValue() (7 fields), without binary data</td></tr><tr><td colspan="4">Run: auto_reset_020 - PASSED - 0 ms - 
+1 assertion<br>Count the number of active tokens inside the instance, should be 0</td></tr><tr><td colspan="4">Run: auto_reset_021 - PASSED - 1 ms - 
+1 assertion<br>Auto-reset enabled, try to insert the first film again using PDOStatement-&gt;bindValue(), without binary data, 
+    PDOException raised</td></tr><tr><td colspan="4">Run: auto_reset_022 - PASSED - 0 ms - 
+1 assertion<br>Count the number of active tokens inside the instance, should be 7, because of previous exception</td></tr><tr><td colspan="4">Run: auto_reset_023 - PASSED - 23 ms - 
+1 assertion<br>Truncate the table</td></tr><tr><td colspan="4">Run: transaction_001 - PASSED - 37 ms - 
+1 assertion<br>Truncate the table</td></tr><tr><td colspan="4">Run: transaction_002 - PASSED - 0 ms - 
+1 assertion<br>Start a transaction</td></tr><tr><td colspan="4">Run: transaction_003 - PASSED - 0 ms - 
+2 assertions<br>Insert one record using plain SQL, without binary data</td></tr><tr><td colspan="4">Run: transaction_004 - PASSED - 0 ms - 
+2 assertions<br>Not committed yet - But same connection, select returns one record</td></tr><tr><td colspan="4">Run: transaction_005 - PASSED - 0 ms - 
+2 assertions<br>Previous connection is not committed - For another connection select is empty</td></tr><tr><td colspan="4">Run: transaction_006 - PASSED - 1 ms - 
+1 assertion<br>Commit</td></tr><tr><td colspan="4">Run: transaction_007 - PASSED - 0 ms - 
+2 assertions<br>Previous connection is committed - For another connection select returns one record</td></tr><tr><td colspan="4">Run: transaction_008 - PASSED - 22 ms - 
+1 assertion<br>Truncate the table</td></tr><tr><td colspan="4">Run: transaction_009 - PASSED - 0 ms - 
+1 assertion<br>Start a transaction</td></tr><tr><td colspan="4">Run: transaction_010 - PASSED - 0 ms - 
+2 assertions<br>Insert first film, without binary data</td></tr><tr><td colspan="4">Run: transaction_011 - PASSED - 0 ms - 
+2 assertions<br>Insert second film, without binary data</td></tr><tr><td colspan="4">Run: transaction_012 - PASSED - 4 ms - 
+1 assertion<br>ROLLBACK all statements</td></tr><tr><td colspan="4">Run: transaction_013 - PASSED - 0 ms - 
+1 assertion<br>Commit</td></tr><tr><td colspan="4">Run: transaction_014 - PASSED - 0 ms - 
+2 assertions<br>Transaction is rollback - select is empty</td></tr><tr><td colspan="4">Run: transaction_015 - PASSED - 0 ms - 
+1 assertion<br>Start a transaction</td></tr><tr><td colspan="4">Run: transaction_016 - PASSED - 0 ms - 
+1 assertion<br>Insert first film, without binary data</td></tr><tr><td colspan="4">Run: transaction_017 - PASSED - 0 ms - 
+1 assertion<br>Transaction is started, create a first savepoint (first)</td></tr><tr><td colspan="4">Run: transaction_018 - PASSED - 0 ms - 
+1 assertion<br>Insert second film, without binary data</td></tr><tr><td colspan="4">Run: transaction_019 - PASSED - 0 ms - 
+1 assertion<br>Transaction is started, create a second savepoint (second)</td></tr><tr><td colspan="4">Run: transaction_020 - PASSED - 0 ms - 
+1 assertion<br>Insert third film, without binary data</td></tr><tr><td colspan="4">Run: transaction_021 - PASSED - 0 ms - 
+1 assertion<br>Rollback to the first savepoint</td></tr><tr><td colspan="4">Run: transaction_022 - PASSED - 1 ms - 
+1 assertion<br>Commit</td></tr><tr><td colspan="4">Run: transaction_023 - PASSED - 0 ms - 
+2 assertions<br>Committed after rolling back to the first savepoint, only one record in the database</td></tr><tr><td colspan="4">Run: transaction_024 - PASSED - 21 ms - 
+1 assertion<br>Truncate the table</td></tr><tr><td colspan="4">Run: transaction_025 - PASSED - 0 ms - 
+1 assertion<br>Start a transaction</td></tr><tr><td colspan="4">Run: transaction_026 - PASSED - 0 ms - 
+1 assertion<br>Insert first film, without binary data</td></tr><tr><td colspan="4">Run: transaction_027 - PASSED - 0 ms - 
+1 assertion<br>Transaction is started, create a first savepoint (first)</td></tr><tr><td colspan="4">Run: transaction_028 - PASSED - 0 ms - 
+1 assertion<br>Insert second film, without binary data</td></tr><tr><td colspan="4">Run: transaction_029 - PASSED - 0 ms - 
+1 assertion<br>Transaction is started, create a second savepoint (second)</td></tr><tr><td colspan="4">Run: transaction_030 - PASSED - 0 ms - 
+1 assertion<br>Insert third film, without binary data</td></tr><tr><td colspan="4">Run: transaction_031 - PASSED - 2 ms - 
+1 assertion<br>Rollback the last statement</td></tr><tr><td colspan="4">Run: transaction_032 - PASSED - 1 ms - 
+1 assertion<br>Commit</td></tr><tr><td colspan="4">Run: transaction_033 - PASSED - 0 ms - 
+2 assertions<br>Committed after rolling back to the first savepoint, two records in the database</td></tr><tr><td colspan="4">Run: binary_001 - PASSED - 20 ms - 
+1 assertion<br>Truncate the table</td></tr><tr><td colspan="4">Run: binary_002 - PASSED - 2 ms - 
+2 assertions<br>Insert the first movie using plain sql with binary data</td></tr><tr><td colspan="4">Run: binary_003 - PASSED - 0 ms - 
+2 assertions<br>Read binary from table and compare to the original file</td></tr><tr><td colspan="4">Run: binary_004 - PASSED - 21 ms - 
+1 assertion<br>Truncate the table</td></tr><tr><td colspan="4">Run: binary_005 - PASSED - 2 ms - 
+2 assertions<br>Insert the first movie using plain sql and bound parameter for binary data</td></tr><tr><td colspan="4">Run: binary_006 - PASSED - 0 ms - 
+2 assertions<br>Read binary from table and compare to the original file</td></tr><tr><td colspan="4">Run: binary_007 - PASSED - 0 ms - 
+3 assertions<br>Select using bound columns</td></tr><tr><td colspan="4">Run: stored_procedure_001 - PASSED - 20 ms - 
+1 assertion<br>Truncate the table</td></tr><tr><td colspan="4">Run: stored_procedure_002 - PASSED - 6 ms - 
+2 assertions<br>Insert all films, without binary data</td></tr><tr><td colspan="4">Run: stored_procedure_003 - PASSED - 3 ms - 
+1 assertion<br>Create a stored procedure that returns one rowset</td></tr><tr><td colspan="4">Run: stored_procedure_004 - PASSED - 0 ms - 
+2 assertions<br>Call SP that returns one rowset (all films, 3 records)</td></tr><tr><td colspan="4">Run: stored_procedure_005 - PASSED - 2 ms - 
+1 assertion<br>Create a stored procedure that returns two rowset</td></tr><tr><td colspan="4">Run: stored_procedure_006 - PASSED - 0 ms - 
+4 assertions<br>Call SP that returns two rowsets (blu-rays + dvd)</td></tr><tr><td colspan="4">Run: stored_procedure_007 - PASSED - 2 ms - 
+1 assertion<br>Create a stored procedure with one in parameter</td></tr><tr><td colspan="4">Run: stored_procedure_008 - PASSED - 0 ms - 
+3 assertions<br>Call SP with one in parameter: all dvds, plain sql escape</td></tr><tr><td colspan="4">Run: stored_procedure_009 - PASSED - 0 ms - 
+3 assertions<br>Call SP with one in parameter: all blu-rays, using PDOStatement-&gt;bindValue()</td></tr><tr><td colspan="4">Run: stored_procedure_010 - PASSED - 0 ms - 
+3 assertions<br>Call SP with one in parameter: all blu-rays, using PDOStatement-&gt;bindRef()</td></tr><tr><td colspan="4">Run: stored_procedure_011 - PASSED - 3 ms - 
+1 assertion<br>Create a stored procedure with two in parameter (support and year)</td></tr><tr><td colspan="4">Run: stored_procedure_012 - PASSED - 0 ms - 
+3 assertions<br>Call SP with two in parameter: all dvds, year 2001, plain sql escape</td></tr><tr><td colspan="4">Run: stored_procedure_013 - PASSED - 0 ms - 
+3 assertions<br>Call SP with two in parameter: all blu-rays, year 2002, using PDOStatement-&gt;bindValue()</td></tr><tr><td colspan="4">Run: stored_procedure_014 - PASSED - 0 ms - 
+3 assertions<br>Call SP with two in parameter: all blu-rays, year 2001, using PDOStatement-&gt;bindRef()</td></tr><tr><td colspan="4">Run: stored_procedure_015 - PASSED - 2 ms - 
+1 assertion<br>Create a stored procedure with one out parameter</td></tr><tr><td colspan="4">Run: stored_procedure_016 - PASSED - 0 ms - 
+4 assertions<br>Call SP with one out parameter</td></tr><tr><td colspan="4">Run: stored_procedure_017 - PASSED - 2 ms - 
+1 assertion<br>Create a stored procedure with two out parameters</td></tr><tr><td colspan="4">Run: stored_procedure_018 - PASSED - 0 ms - 
+5 assertions<br>Call SP with two out parameters</td></tr><tr><td colspan="4">Run: stored_procedure_019 - PASSED - 2 ms - 
+1 assertion<br>Create a stored procedure with a rowset and two out parameters</td></tr><tr><td colspan="4">Run: stored_procedure_020 - PASSED - 0 ms - 
+7 assertions<br>Call SP with a rowset and two out parameters</td></tr><tr><td colspan="4">Run: stored_procedure_021 - PASSED - 2 ms - 
+1 assertion<br>Create a stored procedure with a rowset and one inout parameter and two out parameters</td></tr><tr><td colspan="4">Run: stored_procedure_022 - PASSED - 0 ms - 
+6 assertions<br>Call SP with a rowset and two out parameters</td></tr><tr><td colspan="4">Run: update_001 - PASSED - 21 ms - 
+1 assertion<br>Truncate the table</td></tr><tr><td colspan="4">Run: update_002 - PASSED - 6 ms - 
+2 assertions<br>Insert all films, without binary data</td></tr><tr><td colspan="4">Run: update_003 - PASSED - 3 ms - 
+2 assertions<br>Update using plain sql</td></tr><tr><td colspan="4">Run: delete_001 - PASSED - 22 ms - 
+1 assertion<br>Truncate the table</td></tr><tr><td colspan="4">Run: delete_002 - PASSED - 6 ms - 
+2 assertions<br>Insert all films, without binary data</td></tr><tr><td colspan="4">Run: delete_003 - PASSED - 2 ms - 
+2 assertions<br>Delete all blu-rays using plain sql</td></tr><tr><td colspan="4">Run: bigint_001 - PASSED - 21 ms - 
+1 assertion<br>Truncate the table</td></tr><tr><td colspan="4">Run: bigint_002 - PASSED - 1 ms - 
+2 assertions<br>Inserting one record plain sql with signed and unsigned bigint</td></tr><tr><td colspan="4">Run: bigint_003 - PASSED - 1 ms - 
+2 assertions<br>Inserting one record using binding value with signed and unsigned bigint</td></tr><tr><td colspan="4">Run: bigint_004 - PASSED - 23 ms - 
+1 assertion<br>Truncate the table</td></tr><tr><td colspan="4">Run: bigint_005 - PASSED - 7 ms - 
+3 assertions<br>Insert all records using PDOStatement-&gt;bindParam(),with signed and unsigned bigint</td></tr><tr><td colspan="4">Run: bigint_006 - PASSED - 0 ms - 
+3 assertions<br>Select all blu-rays using plain sql with bigint</td></tr><tr><td colspan="4">Run: bigint_007 - PASSED - 3 ms - 
+2 assertions<br>Update bingint value</td></tr><tr><td colspan="4">Run: bigint_008 - PASSED - 0 ms - 
+3 assertions<br>Select last updated record</td></tr>    </tbody>
+  </table>
+
+</body></html>

@@ -1,6 +1,4 @@
-<?php
-
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 use Exacodis\Pilot;
 use rawsrc\PDOPlusPlus\PDOPlusPlus;
@@ -11,7 +9,7 @@ use rawsrc\PDOPlusPlus\PDOPlusPlus;
 //region PLAIN SQL - ONE RECORD - NO BINARY DATA
 $pilot->run(
     id: 'insert_001',
-    description: 'Insert one record using plain SQL, without binary data',
+    description: 'Insert one record using plain SQL, without binary data and without bigint',
     test: fn() => $pilot->getResource('insert_plain_sql')('film1', $ppp)
 );
 $pilot->assertIsString();
@@ -21,7 +19,7 @@ $pilot->assertEqual('1');
 //region BIND VALUES - ONE RECORD - NO BINARY DATA
 $pilot->run(
     id: 'insert_002',
-    description: 'Insert one record using PDOStatement->bindValue(), without binary data',
+    description: 'Insert one record using PDOStatement->bindValue(), without binary data and without bigint',
     test: fn() => $pilot->getResource('insert_plain_sql')('film2', $ppp)
 );
 $pilot->assertIsString();
@@ -45,7 +43,7 @@ INSERT INTO t_video (
 sql;
 $pilot->run(
     id: 'insert_004',
-    description: 'Insert all records using PDOStatement->bindParam(), without binary data',
+    description: 'Insert all records using PDOStatement->bindParam(), without binary data and without bigint',
     test: function() use ($ppp, $films, $sql, &$title, &$support, &$multilingual, &$chapter, &$year, &$summary, &$stock) {
         $ids = [];
         foreach ($films as $film) {
@@ -71,7 +69,7 @@ $pilot->getResource('run_truncate_the_table')('insert_005');
 //region PLAIN SQL - ALL RECORDS - NO BINARY DATA
 $pilot->run(
     id: 'insert_006',
-    description: 'Insert all records using plain SQL, without binary data',
+    description: 'Insert all records using plain SQL, without binary data and without bigint',
     test: function() use ($pilot, $ppp) {
         $insert = $pilot->getResource('insert_plain_sql');
         $ids = [];
@@ -105,7 +103,7 @@ INSERT INTO t_video (
 sql;
     $pilot->run(
         id: 'insert_'.sprintf('%03d', $run++),
-        description: 'Insert all records using PDOStatement->bindValue() (loop), without binary data',
+        description: 'Insert all records using PDOStatement->bindValue() (loop), without binary data and without bigint',
         test: fn() => $ppp->insert($sql)
     );
     $pilot->assertIsString();

@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * TESTS ARE WRITTEN FOR EXACODIS PHP TEST ENGINE
@@ -7,7 +7,7 @@
  * To run the tests, you must only define a db user granted with all privileges
  */
 
-declare(strict_types=1);
+
 
 //region setup test environment
 include_once '../vendor/exacodis/Pilot.php';
@@ -33,5 +33,6 @@ include 'binary_data.php';
 include 'stored_procedure.php';
 include 'update.php';
 include 'delete.php';
+include 'bigint.php';
 
 $pilot->createReport();

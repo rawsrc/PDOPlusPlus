@@ -1,6 +1,4 @@
-<?php
-
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 use Exacodis\Pilot;
 use rawsrc\PDOPlusPlus\PDOPlusPlus;
@@ -17,25 +15,30 @@ $pilot->run(
 $pilot->assertIsArray();
 $pilot->assertCount(2);
 $pilot->assertEqual([[
-    'video_id'           => 1,
-    'video_title'        => "The Lord of the Rings - The Fellowship of the Ring",
-    'video_support'      => 'BLU-RAY',
-    'video_multilingual' => 1,
-    'video_chapter'      => 1,
-    'video_year'         => 2001,
-    'video_summary'      => null,
-    'video_stock'        => 10,
-    'video_img'          => null
+    'video_id'              => 1,
+    'video_title'           => "The Lord of the Rings - The Fellowship of the Ring",
+    'video_support'         => 'BLU-RAY',
+    'video_multilingual'    => 1,
+    'video_chapter'         => 1,
+    'video_year'            => 2001,
+    'video_summary'         => null,
+    'video_stock'           => 10,
+    'video_img'             => null,
+    'video_bigint_unsigned' => null,
+    'video_bigint'          => null,
+
 ], [
-    'video_id'           => 2,
-    'video_title'        => "The Lord of the Rings - The two towers",
-    'video_support'      => 'BLU-RAY',
-    'video_multilingual' => 1,
-    'video_chapter'      => 2,
-    'video_year'         => 2002,
-    'video_summary'      => null,
-    'video_stock'        => 0,
-    'video_img'          => null
+    'video_id'              => 2,
+    'video_title'           => "The Lord of the Rings - The two towers",
+    'video_support'         => 'BLU-RAY',
+    'video_multilingual'    => 1,
+    'video_chapter'         => 2,
+    'video_year'            => 2002,
+    'video_summary'         => null,
+    'video_stock'           => 0,
+    'video_img'             => null,
+    'video_bigint_unsigned' => null,
+    'video_bigint'          => null,
 ]]);
 // endregion
 
@@ -48,25 +51,29 @@ $pilot->run(
 );
 $pilot->assertCount(2);
 $pilot->assertEqual([[
-    'video_id'           => 1,
-    'video_title'        => "The Lord of the Rings - The Fellowship of the Ring",
-    'video_support'      => 'BLU-RAY',
-    'video_multilingual' => 1,
-    'video_chapter'      => 1,
-    'video_year'         => 2001,
-    'video_summary'      => null,
-    'video_stock'        => 10,
-    'video_img'          => null
+    'video_id'              => 1,
+    'video_title'           => "The Lord of the Rings - The Fellowship of the Ring",
+    'video_support'         => 'BLU-RAY',
+    'video_multilingual'    => 1,
+    'video_chapter'         => 1,
+    'video_year'            => 2001,
+    'video_summary'         => null,
+    'video_stock'           => 10,
+    'video_img'             => null,
+    'video_bigint_unsigned' => null,
+    'video_bigint'          => null,
 ], [
-    'video_id'           => 2,
-    'video_title'        => "The Lord of the Rings - The two towers",
-    'video_support'      => 'BLU-RAY',
-    'video_multilingual' => 1,
-    'video_chapter'      => 2,
-    'video_year'         => 2002,
-    'video_summary'      => null,
-    'video_stock'        => 0,
-    'video_img'          => null
+    'video_id'              => 2,
+    'video_title'           => "The Lord of the Rings - The two towers",
+    'video_support'         => 'BLU-RAY',
+    'video_multilingual'    => 1,
+    'video_chapter'         => 2,
+    'video_year'            => 2002,
+    'video_summary'         => null,
+    'video_stock'           => 0,
+    'video_img'             => null,
+    'video_bigint_unsigned' => null,
+    'video_bigint'          => null,
 ]]);
 //endregion
 

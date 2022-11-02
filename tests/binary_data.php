@@ -1,6 +1,4 @@
-<?php
-
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 use Exacodis\Pilot;
 use rawsrc\PDOPlusPlus\PDOPlusPlus;
@@ -75,7 +73,7 @@ $pilot->getResource('run_truncate_the_table')('binary_004');
 //$bin_img = fread($file, $size);
 //fclose($file);
 $film = $pilot->getResource('film1');
-$in = $ppp->getInjectorInByRef('binary'); // we lock the type
+$in = $ppp->getInjectorInByRef();
 $pilot->run(
     id: 'binary_005',
     description: 'Insert the first movie using plain sql and bound parameter for binary data',
@@ -143,7 +141,7 @@ $pilot->assert(
     expected: 'The Lord of the Rings - The Fellowship of the Ring'
 );
 $pilot->assert(
-    test: fn() => $video_img === $bin_img,
+    test: fn() => stream_get_contents($video_img) === $bin_img,
     test_name: 'Check the bound $video_img binary value',
     expected: 'Same as the original binary image'
 );
