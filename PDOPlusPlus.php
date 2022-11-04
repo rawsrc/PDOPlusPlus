@@ -2,14 +2,10 @@
 
 namespace rawsrc\PDOPlusPlus;
 
-include_once 'AbstractInjector.php';
-
-use InvalidArgumentException;
-use rawsrc\PDOPlusPlus\AbstractInjector;
-
 use BadMethodCallException;
 use Closure;
 use Exception;
+use InvalidArgumentException;
 use PDO;
 use PDOException;
 use PDOStatement;
@@ -545,12 +541,17 @@ class PDOPlusPlus
      * Plain escaped SQL value
      * Possible types: int str float double num numeric bool binary
      *
-     * @return AbstractInjector
+     * @return object
      * @throws TypeError
      */
-    public function getInjectorIn(): AbstractInjector
+    public function getInjectorIn(): object
     {
-        return new class($this->data) extends AbstractInjector {
+        return new class($this->data) {
+            /**
+             * @param array $data
+             */
+            public function __construct(protected array &$data) { }
+
             /**
              * @param mixed $value
              * @param string $type among: int str float bool binary bigint
@@ -579,11 +580,15 @@ class PDOPlusPlus
      * Plain escaped SQL values passed by reference
      * Possible types: int str float double num numeric bool binary
      *
-     * @return AbstractInjector
+     * @return object
      */
-    public function getInjectorInAsRef(): AbstractInjector
+    public function getInjectorInAsRef(): object
     {
-        return new class($this->data) extends AbstractInjector {
+        return new class($this->data) {
+            /**
+             * @param array $data
+             */
+            public function __construct(protected array &$data) { }
             /**
              * @param mixed $value
              * @param string $type among: int str float bool binary bigint
@@ -607,11 +612,15 @@ class PDOPlusPlus
      * Injector for values using a statement with ->bindValue()
      * Possible types: int str float double num numeric bool binary
      *
-     * @return AbstractInjector
+     * @return object
      */
-    public function getInjectorInByVal(): AbstractInjector
+    public function getInjectorInByVal(): object
     {
-        return new class($this->data) extends AbstractInjector {
+        return new class($this->data) {
+            /**
+             * @param array $data
+             */
+            public function __construct(protected array &$data) { }
             /**
              * @param mixed $value
              * @param string $type among: int str float bool binary bigint
@@ -639,11 +648,15 @@ class PDOPlusPlus
     /**
      * Injector for referenced values using a statement with ->bindParam()
      *
-     * @return AbstractInjector
+     * @return object
      */
-    public function getInjectorInByRef(): AbstractInjector
+    public function getInjectorInByRef(): object
     {
-        return new class($this->data) extends AbstractInjector {
+        return new class($this->data) {
+            /**
+             * @param array $data
+             */
+            public function __construct(protected array &$data) { }
             /**
              * @param mixed $value
              * @param string $type among: int str float double num numeric bool binary bigint
@@ -673,11 +686,16 @@ class PDOPlusPlus
     /**
      * Injector for a plain sql escaped INOUT attribute
      *
-     * @return AbstractInjector
+     * @return object
      */
-    public function getInjectorInOut(): AbstractInjector
+    public function getInjectorInOut(): object
     {
-        return new class($this->data) extends AbstractInjector {
+        return new class($this->data) {
+            /**
+             * @param array $data
+             */
+            public function __construct(protected array &$data) { }
+
             /**
              * @param mixed $value
              * @param string $inout_tag ex: '@id'
@@ -701,11 +719,16 @@ class PDOPlusPlus
     /**
      * Injector for an OUT attribute
      *
-     * @return AbstractInjector
+     * @return object
      */
     public function getInjectorOut(): object
     {
-        return new class($this->data) extends AbstractInjector {
+        return new class($this->data) {
+            /**
+             * @param array $data
+             */
+            public function __construct(protected array &$data) { }
+
             /**
              * @param string $out_tag ex:'@id'
              * @return string
