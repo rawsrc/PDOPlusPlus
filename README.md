@@ -1,6 +1,6 @@
 # PDOPlusPlus : a new generation of PDO Wrapper
 
-`2022-11-01` `PHP 8.0+` `v.5.0.0`
+`2022-11-04` `PHP 8.0+` `v.5.0.1`
 
 ## A PHP full object PDO Wrapper in one class
 
@@ -41,7 +41,7 @@ The power of `PDOPlusPlus` is directly linked to the way the instance is
 All you have to choose is the right **injector** that will take care, in a secure 
 way, of the values to be injected into the SQL.<br>
 
-To cover all use cases, there's 5 different injectors:
+To cover all use cases, there's 6 different injectors:
 - `getInjectorIn()`: injected values are directly escaped (plain sql). **THIS IS THE DEFAULT INJECTOR**
 - `getInjectorInByVal()`: injected values are escaped using the `PDOStatement->bindValue()` mechanism
 - `getInjectorInByRef()`: injected values are escaped using the `PDOStatement->bindParam()` mechanism
@@ -65,6 +65,8 @@ NEW FEATURES:
 
 REMOVED:
 - Defining the final data type when creating an injector
+- `AbstractInjector` class as its code was so simple that it was meaningful to directly implement it in each injector.
+So now `PDOPlusPlus` is truly a standalone class with no other dependency
 
 The test code is now available. All tests are written for another of my projects: 
 [Exacodis, a minimalist testing engine for PHP](https://github.com/rawsrc/exacodis) 
