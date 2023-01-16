@@ -19,7 +19,7 @@ The engine, will automatically escape the values and will let you concentrate on
 - SELECT
 - STORED PROCEDURE
 - TRANSACTIONS (EVEN NESTED ONES)
-- NATIVE SQL BINGINT (OR INT8) SIGNED/UNSIGNED SUPPORT 
+- NATIVE SQL BIGINT (OR INT8) SIGNED/UNSIGNED SUPPORT 
 
 For stored procedures, you'll be able to use any `IN`, `OUT` or `INOUT` params.<br>
 `PDOPlusPlus` is also fully compatible with those returning multiple dataset
